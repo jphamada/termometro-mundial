@@ -2,7 +2,6 @@
 // Termómetro de la Final — lógica de la app (Firebase v9+ modular)
 // ============================================================================
 
-import { FIREBASE_CONFIG } from "./firebase-config.js?v=5";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -50,6 +49,16 @@ const MOMENT_INFO = {
 // ----------------------------------------------------------------------------
 // 3) FIREBASE INIT
 // ----------------------------------------------------------------------------
+
+let FIREBASE_CONFIG = { apiKey: "REEMPLAZAR_API_KEY" };
+try {
+  const configResponse = await fetch("/api/config");
+  if (configResponse.ok) {
+    FIREBASE_CONFIG = await configResponse.json();
+  }
+} catch (err) {
+  console.warn("No se pudo obtener /api/config, utilizando modo demostración local.");
+}
 
 const app = initializeApp(FIREBASE_CONFIG);
 const db = getFirestore(app);

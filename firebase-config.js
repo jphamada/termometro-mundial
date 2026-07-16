@@ -63,11 +63,10 @@
  */
 
 export const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyC22Y4dB1TbCU-5gAa4IboEhchD_lxGOd4",
-  authDomain: "termometro-final-mundial.firebaseapp.com",
-  projectId: "termometro-final-mundial",
-  storageBucket: "termometro-final-mundial.firebasestorage.app",
-  messagingSenderId: "401904516757",
-  appId: "1:401904516757:web:7a9efbcb83444dad29259c",
-  measurementId: "G-9YC4KJ0R73"
+  apiKey: "REEMPLAZAR_API_KEY",
+  authDomain: "REEMPLAZAR_PROJECT_ID.firebaseapp.com",
+  projectId: "REEMPLAZAR_PROJECT_ID",
+  storageBucket: "REEMPLAZAR_PROJECT_ID.appspot.com",
+  messagingSenderId: "REEMPLAZAR_SENDER_ID",
+  appId: "REEMPLAZAR_APP_ID",
 };
