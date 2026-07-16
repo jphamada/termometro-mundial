@@ -374,6 +374,46 @@ html, body {
   opacity: 1;
 }
 
+.vote-card.is-selected {
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 6px 18px rgba(20, 24, 31, 0.12);
+}
+
+.submit-vote-btn {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin: 20px auto 0;
+  padding: 12px 24px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+
+.submit-vote-btn:hover:not(:disabled) {
+  background: var(--brand-dark);
+  transform: translateY(-1px);
+}
+
+.submit-vote-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.submit-vote-btn:disabled {
+  background: var(--ink-muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ---------- table view (accessible alt) ---------- */
 
 .table-view-toggle {

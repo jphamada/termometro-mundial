@@ -2,7 +2,7 @@
 // Termómetro de la Final — lógica de la app (Firebase v9+ modular)
 // ============================================================================
 
-import { FIREBASE_CONFIG } from "./firebase-config.js?v=4";
+import { FIREBASE_CONFIG } from "./firebase-config.js?v=5";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -99,6 +99,7 @@ const voteTitle = document.getElementById("voteTitle");
 const toggleTableBtn = document.getElementById("toggleTableBtn");
 const dataTable = document.getElementById("dataTable");
 const dataTableBody = document.getElementById("dataTableBody");
+const submitVoteBtn = document.getElementById("submitVoteBtn");
 
 // ----------------------------------------------------------------------------
 // 6) Gauge (SVG semicircular) — construcción estática de bandas de color
@@ -307,6 +308,8 @@ momentTabs.addEventListener("click", (ev) => {
 // 9) Render: tarjetas de votación
 // ----------------------------------------------------------------------------
 
+let selectedEmotion = null;
+
 function buildVoteGrid() {
   voteGrid.innerHTML = "";
   EMOTIONS.forEach((emo) => {
@@ -320,32 +323,75 @@ function buildVoteGrid() {
       <span class="vc-emoji">${emo.emoji}</span>
       <span class="vc-label">${emo.label}</span>
     `;
-    btn.addEventListener("click", () => castVote(emo, btn));
+    btn.addEventListener("click", () => {
+      // Si ya votó, no permitir selección
+      if (currentStatus.active && sessionStorage.getItem("voted_" + currentStatus.active) === "true") {
+        return;
+      }
+      
+      // Quitar selección previa de todos los botones
+      voteGrid.querySelectorAll(".vote-card").forEach((b) => {
+        b.classList.remove("is-selected");
+      });
+      
+      // Seleccionar este botón
+      btn.classList.add("is-selected");
+      selectedEmotion = emo;
+      
+      // Habilitar botón de envío
+      if (submitVoteBtn) {
+        submitVoteBtn.disabled = false;
+      }
+    });
     voteGrid.appendChild(btn);
   });
 }
 
 function updateVoteAvailability(status) {
   const isActive = Boolean(status.active);
+  const hasVoted = isActive && sessionStorage.getItem("voted_" + status.active) === "true";
+  
   voteGrid.querySelectorAll(".vote-card").forEach((btn) => {
-    btn.disabled = !isActive;
+    btn.disabled = !isActive || hasVoted;
+    btn.classList.remove("is-selected");
   });
-  voteClosedMsg.hidden = isActive;
+  
+  selectedEmotion = null;
+  
+  if (submitVoteBtn) {
+    submitVoteBtn.disabled = true;
+    submitVoteBtn.hidden = !isActive || hasVoted;
+  }
+  
+  voteClosedMsg.hidden = isActive && !hasVoted;
   if (!isActive) {
     voteClosedMsg.textContent =
       status.reason === "before"
         ? "La votación todavía no está habilitada. ¡Volvé pronto!"
         : "La votación ya cerró. ¡Gracias por participar!";
     voteTitle.textContent = "Votación no disponible";
+  } else if (hasVoted) {
+    voteClosedMsg.textContent = "Ya emitiste tu voto para este momento del partido. ¡Gracias por participar!";
+    voteTitle.textContent = "Voto registrado";
   } else {
+    voteClosedMsg.hidden = true;
     voteTitle.textContent = "¿Vos cómo te sentís?";
   }
 }
 
-async function castVote(emo, btnEl) {
-  if (!currentStatus.active || btnEl.disabled) return;
-  btnEl.classList.add("is-voting");
-
+async function handleSendVote() {
+  if (!currentStatus.active || !selectedEmotion) return;
+  
+  const emo = selectedEmotion;
+  const selectedBtn = voteGrid.querySelector(`.vote-card[data-emotion-id="${emo.id}"]`);
+  
+  if (submitVoteBtn) {
+    submitVoteBtn.disabled = true;
+  }
+  if (selectedBtn) {
+    selectedBtn.classList.add("is-voting");
+  }
+  
   if (FIREBASE_CONFIG.apiKey === "REEMPLAZAR_API_KEY") {
     // Modo demostración: simula la escritura localmente
     setTimeout(() => {
@@ -355,11 +401,21 @@ async function castVote(emo, btnEl) {
         moment: currentStatus.active,
         timestamp: new Date(),
       });
+      
+      // Guardar en la sesión que ya votó
+      sessionStorage.setItem("voted_" + currentStatus.active, "true");
+      
       renderResults(window.votosDemo.filter((v) => v.moment === viewMoment));
       
-      btnEl.classList.remove("is-voting");
-      btnEl.classList.add("is-confirmed");
-      setTimeout(() => btnEl.classList.remove("is-confirmed"), 600);
+      if (selectedBtn) {
+        selectedBtn.classList.remove("is-voting");
+        selectedBtn.classList.add("is-confirmed");
+      }
+      
+      setTimeout(() => {
+        if (selectedBtn) selectedBtn.classList.remove("is-confirmed");
+        updateVoteAvailability(currentStatus);
+      }, 600);
 
       // si el usuario no fijó una pestaña manualmente, seguimos mostrando
       // el momento activo (donde acaba de votar)
@@ -379,9 +435,19 @@ async function castVote(emo, btnEl) {
       moment: currentStatus.active,
       timestamp: serverTimestamp(),
     });
-    btnEl.classList.remove("is-voting");
-    btnEl.classList.add("is-confirmed");
-    setTimeout(() => btnEl.classList.remove("is-confirmed"), 600);
+    
+    // Guardar en la sesión que ya votó
+    sessionStorage.setItem("voted_" + currentStatus.active, "true");
+    
+    if (selectedBtn) {
+      selectedBtn.classList.remove("is-voting");
+      selectedBtn.classList.add("is-confirmed");
+    }
+    
+    setTimeout(() => {
+      if (selectedBtn) selectedBtn.classList.remove("is-confirmed");
+      updateVoteAvailability(currentStatus);
+    }, 600);
 
     // si el usuario no fijó una pestaña manualmente, seguimos mostrando
     // el momento activo (donde acaba de votar)
@@ -391,10 +457,19 @@ async function castVote(emo, btnEl) {
       subscribeToMoment(viewMoment);
     }
   } catch (err) {
-    btnEl.classList.remove("is-voting");
+    if (selectedBtn) {
+      selectedBtn.classList.remove("is-voting");
+    }
+    if (submitVoteBtn) {
+      submitVoteBtn.disabled = false;
+    }
     console.error("Error al votar:", err);
     alert("No se pudo registrar el voto. Revisá tu conexión e intentá de nuevo.");
   }
+}
+
+if (submitVoteBtn) {
+  submitVoteBtn.addEventListener("click", handleSendVote);
 }
 
 // ----------------------------------------------------------------------------
