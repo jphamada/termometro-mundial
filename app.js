@@ -10,25 +10,10 @@ import {
   serverTimestamp,
   onSnapshot,
   query,
-  where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ----------------------------------------------------------------------------
-// 1) FECHAS CLAVE — CONSTANTES EDITABLES
-//    Todas fijadas en hora de Argentina (UTC-3, sin horario de verano),
-//    así el cálculo es correcto sin importar la zona horaria del dispositivo.
-// ----------------------------------------------------------------------------
-
-const PREVIA_START = new Date("2026-07-15T00:00:00-03:00");
-const PARTIDO_START = new Date("2026-07-19T16:00:00-03:00");
-const PARTIDO_END = new Date("2026-07-19T18:30:00-03:00"); // fin estimado / arranque post-partido
-const HORAS_CIERRE_POST_PARTIDO = 24; // la votación cierra del todo X hs después del post-partido
-const CIERRE_VOTACION = new Date(
-  PARTIDO_END.getTime() + HORAS_CIERRE_POST_PARTIDO * 60 * 60 * 1000
-);
-
-// ----------------------------------------------------------------------------
-// 2) ESCALA DE EMOCIONES — fija, no editable por el usuario final
+// 1) ESCALA DE EMOCIONES — fija, no editable por el usuario final
 // ----------------------------------------------------------------------------
 
 const EMOTIONS = [
@@ -40,14 +25,8 @@ const EMOTIONS = [
   { id: "algarabia", label: "Algarabía total", emoji: "🎉", color: "#E53935", value: 6 },
 ];
 
-const MOMENT_INFO = {
-  previa: { badge: "🕐 Previa", cls: "is-previa", text: "Todavía falta para el partido." },
-  en_vivo: { badge: "🔴 EN VIVO", cls: "is-live", text: "¡El partido se está jugando ahora!" },
-  post_partido: { badge: "🏆 Post-partido", cls: "is-post", text: "El partido ya terminó." },
-};
-
 // ----------------------------------------------------------------------------
-// 3) FIREBASE INIT
+// 2) FIREBASE INIT
 // ----------------------------------------------------------------------------
 
 let FIREBASE_CONFIG = { apiKey: "REEMPLAZAR_API_KEY" };
@@ -63,39 +42,12 @@ try {
 const app = initializeApp(FIREBASE_CONFIG);
 const db = getFirestore(app);
 const votosRef = collection(db, "votos");
-
-// ----------------------------------------------------------------------------
-// 4) ESTADO DEL MOMENTO (calculado según la hora real del dispositivo)
-// ----------------------------------------------------------------------------
-
-function computeStatus(now) {
-  if (now < PREVIA_START) {
-    return { active: null, defaultView: "previa", reason: "before" };
-  }
-  if (now < PARTIDO_START) {
-    return { active: "previa", defaultView: "previa", reason: "ok" };
-  }
-  if (now < PARTIDO_END) {
-    return { active: "en_vivo", defaultView: "en_vivo", reason: "ok" };
-  }
-  if (now < CIERRE_VOTACION) {
-    return { active: "post_partido", defaultView: "post_partido", reason: "ok" };
-  }
-  return { active: null, defaultView: "post_partido", reason: "closed" };
-}
-
-let currentStatus = computeStatus(new Date());
-let viewMoment = currentStatus.defaultView;
-let userPinnedTab = false;
 let unsubscribe = null;
 
 // ----------------------------------------------------------------------------
-// 5) DOM refs
+// 3) DOM refs
 // ----------------------------------------------------------------------------
 
-const momentBadge = document.getElementById("momentBadge");
-const momentText = document.getElementById("momentText");
-const momentTabs = document.getElementById("momentTabs");
 const gaugeSvg = document.getElementById("gaugeSvg");
 const gaugeEmoji = document.getElementById("gaugeEmoji");
 const gaugeLabel = document.getElementById("gaugeLabel");
@@ -111,7 +63,7 @@ const dataTableBody = document.getElementById("dataTableBody");
 const submitVoteBtn = document.getElementById("submitVoteBtn");
 
 // ----------------------------------------------------------------------------
-// 6) Gauge (SVG semicircular) — construcción estática de bandas de color
+// 4) Gauge (SVG semicircular) — construcción estática de bandas de color
 // ----------------------------------------------------------------------------
 
 const GAUGE_CX = 160;
@@ -228,16 +180,13 @@ function setGaugeValue(avgValue) {
   const activeFill = document.getElementById("gaugeActiveFill");
   if (!needleGroup) return;
 
-  // avgValue en [1,6] -> t en [0,1] -> ángulo 180 (min) a 0 (max)
   const clamped = Math.min(6, Math.max(1, avgValue));
   const t = (clamped - 1) / 5;
   const angle = 180 - t * 180;
   
-  // el <line> apunta hacia arriba (90°) por defecto -> rotamos relativo a 90°
   const rotation = 90 - angle;
   needleGroup.setAttribute("transform", `rotate(${rotation} ${GAUGE_CX} ${GAUGE_CY})`);
 
-  // Actualiza el arco dinámico activo
   if (activeFill) {
     if (clamped > 1) {
       activeFill.setAttribute("d", segmentPath(180, angle));
@@ -262,59 +211,7 @@ function closestEmotion(avgValue) {
 }
 
 // ----------------------------------------------------------------------------
-// 7) Render: banner de momento activo
-// ----------------------------------------------------------------------------
-
-function renderMomentBanner(status) {
-  if (!momentBadge || !momentText) return;
-  if (status.reason === "before") {
-    momentBadge.textContent = "🕐 Todavía no arrancó";
-    momentBadge.className = "moment-badge is-closed";
-    momentText.textContent = `La votación de la previa habilita el ${formatArg(PREVIA_START)}.`;
-  } else if (status.reason === "closed") {
-    momentBadge.textContent = "✅ Votación cerrada";
-    momentBadge.className = "moment-badge is-closed";
-    momentText.textContent = "Gracias por participar. Podés ver cómo se sintió la comunidad en cada momento.";
-  } else {
-    const info = MOMENT_INFO[status.active];
-    momentBadge.textContent = info.badge;
-    momentBadge.className = `moment-badge ${info.cls}`;
-    momentText.textContent = info.text;
-  }
-}
-
-function formatArg(date) {
-  return date.toLocaleString("es-AR", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-// ----------------------------------------------------------------------------
-// 8) Render: tabs de momentos
-// ----------------------------------------------------------------------------
-
-function renderTabs() {
-  momentTabs.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.classList.toggle("is-active", btn.dataset.moment === viewMoment);
-  });
-}
-
-momentTabs.addEventListener("click", (ev) => {
-  const btn = ev.target.closest(".tab-btn");
-  if (!btn) return;
-  userPinnedTab = true;
-  viewMoment = btn.dataset.moment;
-  renderTabs();
-  subscribeToMoment(viewMoment);
-});
-
-// ----------------------------------------------------------------------------
-// 9) Render: tarjetas de votación
+// 5) Render: tarjetas de votación
 // ----------------------------------------------------------------------------
 
 let selectedEmotion = null;
@@ -333,21 +230,17 @@ function buildVoteGrid() {
       <span class="vc-label">${emo.label}</span>
     `;
     btn.addEventListener("click", () => {
-      // Si ya votó, no permitir selección
-      if (currentStatus.active && sessionStorage.getItem("voted_" + currentStatus.active) === "true") {
+      if (sessionStorage.getItem("voted_general") === "true") {
         return;
       }
       
-      // Quitar selección previa de todos los botones
       voteGrid.querySelectorAll(".vote-card").forEach((b) => {
         b.classList.remove("is-selected");
       });
       
-      // Seleccionar este botón
       btn.classList.add("is-selected");
       selectedEmotion = emo;
       
-      // Habilitar botón de envío
       if (submitVoteBtn) {
         submitVoteBtn.disabled = false;
       }
@@ -356,12 +249,11 @@ function buildVoteGrid() {
   });
 }
 
-function updateVoteAvailability(status) {
-  const isActive = Boolean(status.active);
-  const hasVoted = isActive && sessionStorage.getItem("voted_" + status.active) === "true";
+function updateVoteAvailability() {
+  const hasVoted = sessionStorage.getItem("voted_general") === "true";
   
   voteGrid.querySelectorAll(".vote-card").forEach((btn) => {
-    btn.disabled = !isActive || hasVoted;
+    btn.disabled = hasVoted;
     btn.classList.remove("is-selected");
   });
   
@@ -369,27 +261,21 @@ function updateVoteAvailability(status) {
   
   if (submitVoteBtn) {
     submitVoteBtn.disabled = true;
-    submitVoteBtn.hidden = !isActive || hasVoted;
+    submitVoteBtn.hidden = hasVoted;
   }
   
-  voteClosedMsg.hidden = isActive && !hasVoted;
-  if (!isActive) {
-    voteClosedMsg.textContent =
-      status.reason === "before"
-        ? "La votación todavía no está habilitada. ¡Volvé pronto!"
-        : "La votación ya cerró. ¡Gracias por participar!";
-    voteTitle.textContent = "Votación no disponible";
-  } else if (hasVoted) {
-    voteClosedMsg.textContent = "Ya emitiste tu voto para este momento del partido. ¡Gracias por participar!";
+  voteClosedMsg.hidden = !hasVoted;
+  if (hasVoted) {
+    voteClosedMsg.textContent = "Ya emitiste tu voto. ¡Gracias por participar!";
     voteTitle.textContent = "Voto registrado";
   } else {
     voteClosedMsg.hidden = true;
-    voteTitle.textContent = "¿Qué emoción sentís ahora?";
+    voteTitle.textContent = "¿Qué emoción sentís para la final del Mundial?";
   }
 }
 
 async function handleSendVote() {
-  if (!currentStatus.active || !selectedEmotion) return;
+  if (!selectedEmotion) return;
   
   const emo = selectedEmotion;
   const selectedBtn = voteGrid.querySelector(`.vote-card[data-emotion-id="${emo.id}"]`);
@@ -402,19 +288,16 @@ async function handleSendVote() {
   }
   
   if (FIREBASE_CONFIG.apiKey === "REEMPLAZAR_API_KEY") {
-    // Modo demostración: simula la escritura localmente
     setTimeout(() => {
       window.votosDemo.push({
         emotion_id: emo.id,
         value: emo.value,
-        moment: currentStatus.active,
+        moment: "general",
         timestamp: new Date(),
       });
       
-      // Guardar en la sesión que ya votó
-      sessionStorage.setItem("voted_" + currentStatus.active, "true");
-      
-      renderResults(window.votosDemo.filter((v) => v.moment === viewMoment));
+      sessionStorage.setItem("voted_general", "true");
+      renderResults(window.votosDemo);
       
       if (selectedBtn) {
         selectedBtn.classList.remove("is-voting");
@@ -423,16 +306,8 @@ async function handleSendVote() {
       
       setTimeout(() => {
         if (selectedBtn) selectedBtn.classList.remove("is-confirmed");
-        updateVoteAvailability(currentStatus);
+        updateVoteAvailability();
       }, 600);
-
-      // si el usuario no fijó una pestaña manualmente, seguimos mostrando
-      // el momento activo (donde acaba de votar)
-      if (!userPinnedTab && viewMoment !== currentStatus.active) {
-        viewMoment = currentStatus.active;
-        renderTabs();
-        subscribeToMoment(viewMoment);
-      }
     }, 450);
     return;
   }
@@ -441,12 +316,11 @@ async function handleSendVote() {
     await addDoc(votosRef, {
       emotion_id: emo.id,
       value: emo.value,
-      moment: currentStatus.active,
+      moment: "general",
       timestamp: serverTimestamp(),
     });
     
-    // Guardar en la sesión que ya votó
-    sessionStorage.setItem("voted_" + currentStatus.active, "true");
+    sessionStorage.setItem("voted_general", "true");
     
     if (selectedBtn) {
       selectedBtn.classList.remove("is-voting");
@@ -455,16 +329,8 @@ async function handleSendVote() {
     
     setTimeout(() => {
       if (selectedBtn) selectedBtn.classList.remove("is-confirmed");
-      updateVoteAvailability(currentStatus);
+      updateVoteAvailability();
     }, 600);
-
-    // si el usuario no fijó una pestaña manualmente, seguimos mostrando
-    // el momento activo (donde acaba de votar)
-    if (!userPinnedTab && viewMoment !== currentStatus.active) {
-      viewMoment = currentStatus.active;
-      renderTabs();
-      subscribeToMoment(viewMoment);
-    }
   } catch (err) {
     if (selectedBtn) {
       selectedBtn.classList.remove("is-voting");
@@ -482,7 +348,7 @@ if (submitVoteBtn) {
 }
 
 // ----------------------------------------------------------------------------
-// 10) Render: barras de desglose + tabla accesible + gauge, con datos en vivo
+// 6) Render: barras de desglose + tabla accesible + gauge, con datos en vivo
 // ----------------------------------------------------------------------------
 
 function renderResults(votes) {
@@ -501,7 +367,6 @@ function renderResults(votes) {
 
   const avg = total > 0 ? sumValues / total : null;
 
-  // gauge
   if (avg !== null) {
     setGaugeValue(avg);
     const near = closestEmotion(avg);
@@ -514,9 +379,8 @@ function renderResults(votes) {
     gaugeLabel.textContent = "Sin votos todavía";
     gaugeValue.textContent = "—";
   }
-  totalVotesEl.textContent = `${total} voto${total === 1 ? "" : "s"} en este momento`;
+  totalVotesEl.textContent = `${total} voto${total === 1 ? "" : "s"} en total`;
 
-  // barras
   barsContainer.innerHTML = "";
   dataTableBody.innerHTML = "";
   EMOTIONS.forEach((emo) => {
@@ -544,13 +408,13 @@ function renderResults(votes) {
 }
 
 // ----------------------------------------------------------------------------
-// 11) Suscripción en tiempo real a Firestore, filtrada por momento
+// 7) Suscripción en tiempo real a Firestore (todas las instancias)
 // ----------------------------------------------------------------------------
 
-function subscribeToMoment(momentId) {
+function subscribeToVotes() {
   if (FIREBASE_CONFIG.apiKey === "REEMPLAZAR_API_KEY") {
     if (window.votosDemo) {
-      renderResults(window.votosDemo.filter((v) => v.moment === momentId));
+      renderResults(window.votosDemo);
     }
     return;
   }
@@ -559,9 +423,8 @@ function subscribeToMoment(momentId) {
     unsubscribe();
     unsubscribe = null;
   }
-  const q = query(votosRef, where("moment", "==", momentId));
   unsubscribe = onSnapshot(
-    q,
+    votosRef,
     (snapshot) => {
       const votes = snapshot.docs.map((d) => d.data());
       renderResults(votes);
@@ -574,23 +437,7 @@ function subscribeToMoment(momentId) {
 }
 
 // ----------------------------------------------------------------------------
-// 12) Reloj: recalcula el momento activo periódicamente
-// ----------------------------------------------------------------------------
-
-function tick() {
-  currentStatus = computeStatus(new Date());
-  renderMomentBanner(currentStatus);
-  updateVoteAvailability(currentStatus);
-
-  if (!userPinnedTab && viewMoment !== currentStatus.defaultView) {
-    viewMoment = currentStatus.defaultView;
-    renderTabs();
-    subscribeToMoment(viewMoment);
-  }
-}
-
-// ----------------------------------------------------------------------------
-// 13) Toggle tabla accesible
+// 8) Toggle tabla accesible
 // ----------------------------------------------------------------------------
 
 toggleTableBtn.addEventListener("click", () => {
@@ -600,19 +447,17 @@ toggleTableBtn.addEventListener("click", () => {
 });
 
 // ----------------------------------------------------------------------------
-// 14) Init
+// 9) Init
 // ----------------------------------------------------------------------------
 
 function init() {
   buildGaugeStatic();
   buildVoteGrid();
-  renderTabs();
-  tick();
+  updateVoteAvailability();
 
   if (FIREBASE_CONFIG.apiKey === "REEMPLAZAR_API_KEY") {
     console.warn("Firebase no configurado. Iniciando en modo demostración con datos de prueba.");
     
-    // Banner de advertencia discreto pero visible y elegante
     const demoBanner = document.createElement("div");
     demoBanner.style.cssText = `
       background: linear-gradient(90deg, #fff3cd 0%, #ffeeba 100%);
@@ -634,35 +479,19 @@ function init() {
     `;
     document.body.insertBefore(demoBanner, document.body.firstChild);
 
-    // Inicializar base de datos de prueba local
     window.votosDemo = [
-      // Previa
-      { emotion_id: "indiferencia", value: 1, moment: "previa" },
-      { emotion_id: "nervios", value: 2, moment: "previa" },
-      { emotion_id: "ilusion", value: 3, moment: "previa" },
-      { emotion_id: "alegria", value: 4, moment: "previa" },
-      { emotion_id: "euforia", value: 5, moment: "previa" },
-      
-      // En vivo
-      { emotion_id: "nervios", value: 2, moment: "en_vivo" },
-      { emotion_id: "ilusion", value: 3, moment: "en_vivo" },
-      { emotion_id: "alegria", value: 4, moment: "en_vivo" },
-      { emotion_id: "euforia", value: 5, moment: "en_vivo" },
-      { emotion_id: "algarabia", value: 6, moment: "en_vivo" },
-      { emotion_id: "algarabia", value: 6, moment: "en_vivo" },
-
-      // Post partido
-      { emotion_id: "algarabia", value: 6, moment: "post_partido" },
-      { emotion_id: "algarabia", value: 6, moment: "post_partido" },
-      { emotion_id: "euforia", value: 5, moment: "post_partido" },
+      { emotion_id: "indiferencia", value: 1, moment: "general" },
+      { emotion_id: "nervios", value: 2, moment: "general" },
+      { emotion_id: "ilusion", value: 3, moment: "general" },
+      { emotion_id: "alegria", value: 4, moment: "general" },
+      { emotion_id: "euforia", value: 5, moment: "general" },
+      { emotion_id: "algarabia", value: 6, moment: "general" },
     ];
 
-    renderResults(window.votosDemo.filter((v) => v.moment === viewMoment));
+    renderResults(window.votosDemo);
   } else {
-    subscribeToMoment(viewMoment);
+    subscribeToVotes();
   }
-
-  setInterval(tick, 20000);
 }
 
 init();
