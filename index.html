@@ -1,83 +1,91 @@
 <!DOCTYPE html>
 <html lang="es-AR">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Termómetro de la Final — España vs Argentina/Inglaterra</title>
-<meta name="description" content="Votá cómo te sentís respecto a la final del Mundial 2026 y mirá en tiempo real cómo se siente toda la comunidad." />
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Termómetro de la Final — España vs Argentina/Inglaterra</title>
+  <meta name="description"
+    content="Votá cómo te sentís respecto a la final del Mundial 2026 y mirá en tiempo real cómo se siente toda la comunidad." />
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-<header class="site-header">
-  <div class="wrap">
-    <span class="kicker">MUNDIAL 2026 · FINAL</span>
-    <h1>🌡️ Termómetro de la Final</h1>
-    <p class="subtitle">España 🇪🇸 vs Argentina/Inglaterra — Domingo 19/07/2026, 16:00 (ARG)</p>
-  </div>
-</header>
-
-<main class="wrap">
-
-
-  <!-- Selector de momentos (histórico) -->
-  <nav class="moment-tabs" id="momentTabs" aria-label="Ver resultados por momento">
-    <button class="tab-btn" data-moment="previa" type="button">🕐 Previa</button>
-    <button class="tab-btn" data-moment="en_vivo" type="button">🔴 En vivo</button>
-    <button class="tab-btn" data-moment="post_partido" type="button">🏆 Post-partido</button>
-  </nav>
-
-  <!-- Panel de votación -->
-  <section class="vote-section" aria-label="Votar">
-    <h2 class="section-title" id="voteTitle">¿Vos cómo te sentís?</h2>
-    <p class="vote-closed-msg" id="voteClosedMsg" hidden></p>
-    <div class="vote-grid" id="voteGrid">
-      <!-- generado por JS -->
+  <header class="site-header">
+    <div class="wrap">
+      <span class="kicker">MUNDIAL 2026 · FINAL</span>
+      <h1>🌡️ Termómetro de la Final</h1>
+      <p class="subtitle">Argentina vs España</p>
     </div>
-    <button type="button" id="submitVoteBtn" class="submit-vote-btn" disabled>Enviar Voto</button>
-  </section>
+  </header>
 
-  <!-- Gauge / termómetro -->
-  <section class="gauge-card" aria-label="Promedio emocional de la comunidad">
-    <div class="gauge-wrap">
-      <svg id="gaugeSvg" viewBox="0 0 320 200" role="img" aria-labelledby="gaugeTitle gaugeDesc">
-        <title id="gaugeTitle">Termómetro emocional</title>
-        <desc id="gaugeDesc">Promedio ponderado de los votos de la comunidad</desc>
-      </svg>
-      <div class="gauge-readout">
-        <span class="gauge-emoji" id="gaugeEmoji">😐</span>
-        <span class="gauge-label" id="gaugeLabel">Sin datos</span>
-        <span class="gauge-value" id="gaugeValue">—</span>
+  <main class="wrap">
+
+
+    <!-- Selector de momentos (histórico) -->
+    <nav class="moment-tabs" id="momentTabs" aria-label="Ver resultados por momento">
+      <button class="tab-btn" data-moment="previa" type="button">🕐 Previa</button>
+      <button class="tab-btn" data-moment="en_vivo" type="button">🔴 En vivo</button>
+      <button class="tab-btn" data-moment="post_partido" type="button">🏆 Post-partido</button>
+    </nav>
+
+    <!-- Panel de votación -->
+    <section class="vote-section" aria-label="Votar">
+      <h2 class="section-title" id="voteTitle">¿Qué emoción sentís ahora?</h2>
+      <p class="vote-closed-msg" id="voteClosedMsg" hidden></p>
+      <div class="vote-grid" id="voteGrid">
+        <!-- generado por JS -->
       </div>
-    </div>
-    <p class="total-votes" id="totalVotes">0 votos</p>
-  </section>
+      <button type="button" id="submitVoteBtn" class="submit-vote-btn" disabled>Enviar Voto</button>
+    </section>
 
-  <!-- Desglose por emoción -->
-  <section class="breakdown" aria-label="Desglose de votos por emoción">
-    <h2 class="section-title">Cómo se siente la comunidad</h2>
-    <div class="bars" id="barsContainer">
-      <!-- generado por JS -->
-    </div>
-  </section>
+    <!-- Gauge / termómetro -->
+    <section class="gauge-card" aria-label="Promedio emocional de la comunidad">
+      <div class="gauge-wrap">
+        <svg id="gaugeSvg" viewBox="0 0 320 200" role="img" aria-labelledby="gaugeTitle gaugeDesc">
+          <title id="gaugeTitle">Termómetro emocional</title>
+          <desc id="gaugeDesc">Promedio ponderado de los votos de la comunidad</desc>
+        </svg>
+        <div class="gauge-readout">
+          <span class="gauge-emoji" id="gaugeEmoji">😐</span>
+          <span class="gauge-label" id="gaugeLabel">Sin datos</span>
+          <span class="gauge-value" id="gaugeValue">—</span>
+        </div>
+      </div>
+      <p class="total-votes" id="totalVotes">0 votos</p>
+    </section>
 
-  <p class="table-view-toggle">
-    <button type="button" id="toggleTableBtn" class="link-btn">Ver como tabla (accesible)</button>
-  </p>
-  <table class="data-table" id="dataTable" hidden>
-    <caption>Detalle de votos por emoción — momento seleccionado</caption>
-    <thead>
-      <tr><th>Emoción</th><th>Votos</th><th>%</th></tr>
-    </thead>
-    <tbody id="dataTableBody"></tbody>
-  </table>
+    <!-- Desglose por emoción -->
+    <section class="breakdown" aria-label="Desglose de votos por emoción">
+      <h2 class="section-title">Cómo se siente la comunidad</h2>
+      <div class="bars" id="barsContainer">
+        <!-- generado por JS -->
+      </div>
+    </section>
 
-</main>
+    <p class="table-view-toggle">
+      <button type="button" id="toggleTableBtn" class="link-btn">Ver como tabla (accesible)</button>
+    </p>
+    <table class="data-table" id="dataTable" hidden>
+      <caption>Detalle de votos por emoción — momento seleccionado</caption>
+      <thead>
+        <tr>
+          <th>Emoción</th>
+          <th>Votos</th>
+          <th>%</th>
+        </tr>
+      </thead>
+      <tbody id="dataTableBody"></tbody>
+    </table>
 
-<footer class="site-footer">
-  <p>Voto anónimo y libre · Los datos se actualizan en tiempo real · Hecho para hinchas del Mundial 2026</p>
-</footer>
+  </main>
 
-<script type="module" src="app.js?v=5"></script>
+  <footer class="site-footer">
+    <p>Voto anónimo y libre · Los datos se actualizan en tiempo real · Hecho para hinchas del Mundial 2026</p>
+  </footer>
+
+  <script type="module" src="app.js?v=5"></script>
 </body>
+
 </html>
