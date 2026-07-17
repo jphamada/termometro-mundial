@@ -384,7 +384,7 @@ function updateVoteAvailability(status) {
     voteTitle.textContent = "Voto registrado";
   } else {
     voteClosedMsg.hidden = true;
-    voteTitle.textContent = "¿Vos cómo te sentís?";
+    voteTitle.textContent = "¿Qué emoción sentís ahora?";
   }
 }
 
