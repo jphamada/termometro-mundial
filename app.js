@@ -1,5 +1,6 @@
 // ============================================================================
-// Termómetro de la Final — lógica de la app (Firebase v9+ modular)
+// TERMÓMETRO DEL 10 — LÓGICA DE LA APLICACIÓN
+// Despedida de Lionel Messi: Argentina vs Benin · Martes 6 de Octubre
 // ============================================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -10,336 +11,348 @@ import {
   serverTimestamp,
   onSnapshot,
   query,
+  orderBy,
+  limit,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import { FIREBASE_CONFIG as STATIC_CONFIG } from "./firebase-config.js";
+
 // ----------------------------------------------------------------------------
-// 1) ESCALA DE EMOCIONES — fija, no editable por el usuario final
+// 1) ESCALA DE EMOCIONES PARA LA DESPEDIDA DEL CAPITÁN
 // ----------------------------------------------------------------------------
 
-const EMOTIONS = [
-  { id: "indiferencia", label: "Indiferencia", emoji: "😐", color: "#9E9E9E", value: 1 },
-  { id: "nervios", label: "Nervios", emoji: "😬", color: "#FFC107", value: 2 },
-  { id: "ilusion", label: "Ilusión", emoji: "🙂", color: "#4FC3F7", value: 3 },
-  { id: "alegria", label: "Alegría", emoji: "😃", color: "#66BB6A", value: 4 },
-  { id: "euforia", label: "Euforia", emoji: "🤩", color: "#FF9800", value: 5 },
-  { id: "algarabia", label: "Algarabía total", emoji: "🎉", color: "#E53935", value: 6 },
+export const EMOTIONS = [
+  {
+    id: "tristeza_infinita",
+    label: "Tristeza infinita",
+    quote: "No quiero que llegue el pitazo final",
+    emoji: "😢",
+    color: "#64748B",
+    value: 1,
+  },
+  {
+    id: "nostalgia_lagrimas",
+    label: "Nostalgia con lágrimas",
+    quote: "Recordando cada gambeta inolvidable",
+    emoji: "🥺",
+    color: "#38BDF8",
+    value: 2,
+  },
+  {
+    id: "piel_gallina",
+    label: "Piel de gallina",
+    quote: "La emoción viva a flor de piel",
+    emoji: "🥶",
+    color: "#2DD4BF",
+    value: 3,
+  },
+  {
+    id: "gratitud_eterna",
+    label: "Gratitud eterna",
+    quote: "Gracias de por vida, Capitán",
+    emoji: "🐐",
+    color: "#FBBF24",
+    value: 4,
+  },
+  {
+    id: "ganas_brindis",
+    label: "Ganas de hacer un brindis",
+    quote: "Por tu magia y tus hazañas, ¡salud!",
+    emoji: "🥂",
+    color: "#FB923C",
+    value: 5,
+  },
+  {
+    id: "alegria_incontenible",
+    label: "Alegría incontenible",
+    quote: "Festejando la vida y gloria del 10",
+    emoji: "🎉",
+    color: "#F43F5E",
+    value: 6,
+  },
 ];
 
 // ----------------------------------------------------------------------------
-// 2) FIREBASE INIT
+// 2) DETECCIÓN Y CONEXIÓN INTELIGENTE DE BASE DE DATOS
 // ----------------------------------------------------------------------------
 
-let FIREBASE_CONFIG = { apiKey: "REEMPLAZAR_API_KEY" };
-try {
-  const configResponse = await fetch("/api/config");
-  if (configResponse.ok) {
-    FIREBASE_CONFIG = await configResponse.json();
-  }
-} catch (err) {
-  console.warn("No se pudo obtener /api/config, utilizando modo demostración local.");
+function isValidFirebaseConfig(cfg) {
+  return Boolean(
+    cfg &&
+      cfg.apiKey &&
+      !cfg.apiKey.includes("REEMPLAZAR") &&
+      cfg.apiKey.length > 10 &&
+      cfg.projectId &&
+      !cfg.projectId.includes("REEMPLAZAR")
+  );
 }
 
-const app = initializeApp(FIREBASE_CONFIG);
-const db = getFirestore(app);
-const votosRef = collection(db, "votos");
-let unsubscribe = null;
+let activeFirebaseConfig = null;
+let db = null;
+let votosRef = null;
+let unsubscribeVotes = null;
+let isDemoMode = false;
 
 // ----------------------------------------------------------------------------
-// 3) DOM refs
+// 3) REFERENCIAS AL DOM
 // ----------------------------------------------------------------------------
 
-const gaugeSvg = document.getElementById("gaugeSvg");
-const gaugeEmoji = document.getElementById("gaugeEmoji");
-const gaugeLabel = document.getElementById("gaugeLabel");
-const gaugeValue = document.getElementById("gaugeValue");
+const statusIndicator = document.getElementById("statusIndicator");
+const statusText = document.getElementById("statusText");
+
 const totalVotesEl = document.getElementById("totalVotes");
-const barsContainer = document.getElementById("barsContainer");
+
 const voteGrid = document.getElementById("voteGrid");
-const voteClosedMsg = document.getElementById("voteClosedMsg");
 const voteTitle = document.getElementById("voteTitle");
+const voteClosedMsg = document.getElementById("voteClosedMsg");
+const tributeInputBox = document.getElementById("tributeInputBox");
+const tributeMessageInput = document.getElementById("tributeMessage");
+const charCount = document.getElementById("charCount");
+const submitVoteBtn = document.getElementById("submitVoteBtn");
+
+const barsContainer = document.getElementById("barsContainer");
+const tributesFeed = document.getElementById("tributesFeed");
+
 const toggleTableBtn = document.getElementById("toggleTableBtn");
 const dataTable = document.getElementById("dataTable");
 const dataTableBody = document.getElementById("dataTableBody");
-const submitVoteBtn = document.getElementById("submitVoteBtn");
-
-// ----------------------------------------------------------------------------
-// 4) Gauge (SVG semicircular) — construcción estática de bandas de color
-// ----------------------------------------------------------------------------
-
-const GAUGE_CX = 160;
-const GAUGE_CY = 170;
-const GAUGE_R_OUTER = 130;
-const GAUGE_R_INNER = 96;
-
-function polar(cx, cy, r, angleDeg) {
-  const rad = (angleDeg * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
-}
-
-function segmentPath(startAngle, endAngle) {
-  const p1 = polar(GAUGE_CX, GAUGE_CY, GAUGE_R_OUTER, startAngle);
-  const p2 = polar(GAUGE_CX, GAUGE_CY, GAUGE_R_OUTER, endAngle);
-  const p3 = polar(GAUGE_CX, GAUGE_CY, GAUGE_R_INNER, endAngle);
-  const p4 = polar(GAUGE_CX, GAUGE_CY, GAUGE_R_INNER, startAngle);
-  const largeArc = Math.abs(startAngle - endAngle) > 180 ? 1 : 0;
-  return [
-    `M ${p1.x} ${p1.y}`,
-    `A ${GAUGE_R_OUTER} ${GAUGE_R_OUTER} 0 ${largeArc} 0 ${p2.x} ${p2.y}`,
-    `L ${p3.x} ${p3.y}`,
-    `A ${GAUGE_R_INNER} ${GAUGE_R_INNER} 0 ${largeArc} 1 ${p4.x} ${p4.y}`,
-    "Z",
-  ].join(" ");
-}
-
-function buildGaugeStatic() {
-  const ns = "http://www.w3.org/2000/svg";
-  const segCount = EMOTIONS.length;
-  const segSpan = 180 / segCount;
-
-  // Gradiente lineal que une el espectro de colores de las emociones
-  const defs = document.createElementNS(ns, "defs");
-  const grad = document.createElementNS(ns, "linearGradient");
-  grad.setAttribute("id", "gaugeGrad");
-  grad.setAttribute("x1", "0%");
-  grad.setAttribute("y1", "0%");
-  grad.setAttribute("x2", "100%");
-  grad.setAttribute("y2", "0%");
-
-  EMOTIONS.forEach((emo, i) => {
-    const stop = document.createElementNS(ns, "stop");
-    stop.setAttribute("offset", `${(i / (EMOTIONS.length - 1)) * 100}%`);
-    stop.setAttribute("stop-color", emo.color);
-    grad.appendChild(stop);
-  });
-  defs.appendChild(grad);
-  gaugeSvg.appendChild(defs);
-
-  // Segmentos de fondo con baja opacidad como escala de referencia
-  EMOTIONS.forEach((emo, i) => {
-    const startAngle = 180 - i * segSpan;
-    const endAngle = 180 - (i + 1) * segSpan;
-    const path = document.createElementNS(ns, "path");
-    path.setAttribute("d", segmentPath(startAngle, endAngle));
-    path.setAttribute("fill", emo.color);
-    path.setAttribute("opacity", "0.18");
-    gaugeSvg.appendChild(path);
-  });
-
-  // Arco dinámico activo relleno con el gradiente
-  const activeFill = document.createElementNS(ns, "path");
-  activeFill.setAttribute("id", "gaugeActiveFill");
-  activeFill.setAttribute("class", "gauge-active-fill");
-  activeFill.setAttribute("fill", "url(#gaugeGrad)");
-  activeFill.setAttribute("opacity", "0.95");
-  gaugeSvg.appendChild(activeFill);
-
-  // marcas de escala (ticks) con emoji en los extremos
-  EMOTIONS.forEach((emo, i) => {
-    const angle = 180 - (i + 0.5) * segSpan;
-    const p = polar(GAUGE_CX, GAUGE_CY, GAUGE_R_OUTER + 14, angle);
-    const text = document.createElementNS(ns, "text");
-    text.setAttribute("x", p.x);
-    text.setAttribute("y", p.y);
-    text.setAttribute("text-anchor", "middle");
-    text.setAttribute("dominant-baseline", "middle");
-    text.setAttribute("font-size", "13");
-    text.textContent = emo.emoji;
-    gaugeSvg.appendChild(text);
-  });
-
-  // base de la aguja (pivote)
-  const needleGroup = document.createElementNS(ns, "g");
-  needleGroup.setAttribute("id", "needleGroup");
-  needleGroup.setAttribute("class", "gauge-needle");
-
-  const needleLine = document.createElementNS(ns, "line");
-  needleLine.setAttribute("id", "needleLine");
-  needleLine.setAttribute("x1", GAUGE_CX);
-  needleLine.setAttribute("y1", GAUGE_CY);
-  needleLine.setAttribute("x2", GAUGE_CX);
-  needleLine.setAttribute("y2", GAUGE_CY - (GAUGE_R_INNER - 6));
-  needleLine.setAttribute("stroke", "var(--ink, #14181f)");
-  needleLine.setAttribute("stroke-width", "4");
-  needleLine.setAttribute("stroke-linecap", "round");
-  needleGroup.appendChild(needleLine);
-
-  gaugeSvg.appendChild(needleGroup);
-
-  const pivotOuter = document.createElementNS(ns, "circle");
-  pivotOuter.setAttribute("cx", GAUGE_CX);
-  pivotOuter.setAttribute("cy", GAUGE_CY);
-  pivotOuter.setAttribute("r", 10);
-  pivotOuter.setAttribute("fill", "#ffffff");
-  pivotOuter.setAttribute("stroke", "var(--ink, #14181f)");
-  pivotOuter.setAttribute("stroke-width", "3");
-  gaugeSvg.appendChild(pivotOuter);
-}
-
-function setGaugeValue(avgValue) {
-  const needleGroup = document.getElementById("needleGroup");
-  const activeFill = document.getElementById("gaugeActiveFill");
-  if (!needleGroup) return;
-
-  const clamped = Math.min(6, Math.max(1, avgValue));
-  const t = (clamped - 1) / 5;
-  const angle = 180 - t * 180;
-  
-  const rotation = 90 - angle;
-  needleGroup.setAttribute("transform", `rotate(${rotation} ${GAUGE_CX} ${GAUGE_CY})`);
-
-  if (activeFill) {
-    if (clamped > 1) {
-      activeFill.setAttribute("d", segmentPath(180, angle));
-      activeFill.setAttribute("display", "");
-    } else {
-      activeFill.setAttribute("display", "none");
-    }
-  }
-}
-
-function closestEmotion(avgValue) {
-  let best = EMOTIONS[0];
-  let bestDiff = Infinity;
-  for (const e of EMOTIONS) {
-    const diff = Math.abs(e.value - avgValue);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = e;
-    }
-  }
-  return best;
-}
-
-// ----------------------------------------------------------------------------
-// 5) Render: tarjetas de votación
-// ----------------------------------------------------------------------------
 
 let selectedEmotion = null;
 
+// ----------------------------------------------------------------------------
+// 4) CONFETI Y CELEBRACIÓN ALBICELASTE (CANVAS)
+// ----------------------------------------------------------------------------
+
+const confettiCanvas = document.getElementById("confettiCanvas");
+let confettiCtx = confettiCanvas ? confettiCanvas.getContext("2d") : null;
+let confettiParticles = [];
+let confettiAnimationId = null;
+
+function resizeConfetti() {
+  if (!confettiCanvas) return;
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeConfetti);
+resizeConfetti();
+
+function triggerAlbicelesteConfetti() {
+  if (!confettiCanvas || !confettiCtx) return;
+  
+  const colors = ["#75AADB", "#FFFFFF", "#F6B40E", "#E8F3FA", "#0A192F"];
+  confettiParticles = [];
+  
+  const count = 120;
+  for (let i = 0; i < count; i++) {
+    confettiParticles.push({
+      x: window.innerWidth * 0.5 + (Math.random() - 0.5) * 200,
+      y: window.innerHeight * 0.6,
+      vx: (Math.random() - 0.5) * 16,
+      vy: -(Math.random() * 14 + 10),
+      size: Math.random() * 8 + 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      vRotation: (Math.random() - 0.5) * 12,
+      opacity: 1,
+      gravity: 0.38,
+    });
+  }
+
+  if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+
+  function loop() {
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    let active = false;
+
+    confettiParticles.forEach((p) => {
+      p.x += p.vx;
+      p.vy += p.gravity;
+      p.y += p.vy;
+      p.rotation += p.vRotation;
+      if (p.y > window.innerHeight * 0.7) {
+        p.opacity -= 0.015;
+      }
+
+      if (p.opacity > 0 && p.y < confettiCanvas.height + 20) {
+        active = true;
+        confettiCtx.save();
+        confettiCtx.globalAlpha = Math.max(0, p.opacity);
+        confettiCtx.translate(p.x, p.y);
+        confettiCtx.rotate((p.rotation * Math.PI) / 180);
+        confettiCtx.fillStyle = p.color;
+        confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        confettiCtx.restore();
+      }
+    });
+
+    if (active) {
+      confettiAnimationId = requestAnimationFrame(loop);
+    } else {
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
+  }
+
+  confettiAnimationId = requestAnimationFrame(loop);
+}
+
+// ----------------------------------------------------------------------------
+// 5) INTERACCIÓN DE VOTACIÓN Y TARJETAS
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// 6) INTERACCIÓN DE VOTACIÓN Y TARJETAS
+// ----------------------------------------------------------------------------
+
 function buildVoteGrid() {
+  if (!voteGrid) return;
   voteGrid.innerHTML = "";
+
   EMOTIONS.forEach((emo) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "vote-card";
-    btn.style.setProperty("--accent", emo.color);
+    btn.style.setProperty("--accent-color", emo.color);
     btn.dataset.emotionId = emo.id;
+    btn.setAttribute("aria-label", `${emo.label}: ${emo.quote}`);
+
     btn.innerHTML = `
-      <span class="vc-check">✅</span>
+      <span class="vc-check">★</span>
       <span class="vc-emoji">${emo.emoji}</span>
       <span class="vc-label">${emo.label}</span>
+      <span class="vc-quote">${emo.quote}</span>
     `;
+
     btn.addEventListener("click", () => {
-      if (sessionStorage.getItem("voted_general") === "true") {
-        return;
-      }
-      
+      if (localStorage.getItem("voted_messi_despedida") === "true") return;
+
       voteGrid.querySelectorAll(".vote-card").forEach((b) => {
         b.classList.remove("is-selected");
       });
-      
+
       btn.classList.add("is-selected");
       selectedEmotion = emo;
-      
+
       if (submitVoteBtn) {
         submitVoteBtn.disabled = false;
+        submitVoteBtn.innerHTML = `
+          <span class="btn-icon">${emo.emoji}</span>
+          <span class="btn-text">Confirmar Homenaje (${emo.label})</span>
+        `;
       }
     });
+
     voteGrid.appendChild(btn);
   });
 }
 
 function updateVoteAvailability() {
-  const hasVoted = sessionStorage.getItem("voted_general") === "true";
-  
+  const hasVoted = localStorage.getItem("voted_messi_despedida") === "true";
+
   voteGrid.querySelectorAll(".vote-card").forEach((btn) => {
     btn.disabled = hasVoted;
     btn.classList.remove("is-selected");
   });
-  
+
   selectedEmotion = null;
-  
+
   if (submitVoteBtn) {
     submitVoteBtn.disabled = true;
     submitVoteBtn.hidden = hasVoted;
+    submitVoteBtn.innerHTML = `
+      <span class="btn-icon">💙</span>
+      <span class="btn-text">Registrar Mi Emoción</span>
+    `;
   }
-  
-  voteClosedMsg.hidden = !hasVoted;
-  if (hasVoted) {
-    voteClosedMsg.textContent = "Ya emitiste tu voto. ¡Gracias por participar!";
-    voteTitle.textContent = "Voto registrado";
-  } else {
-    voteClosedMsg.hidden = true;
-    voteTitle.textContent = "¿Qué emoción sentís para la final del Mundial?";
+
+  if (tributeInputBox) {
+    tributeInputBox.hidden = hasVoted;
+  }
+
+  if (voteClosedMsg) {
+    voteClosedMsg.hidden = !hasVoted;
+  }
+
+  if (voteTitle) {
+    voteTitle.textContent = hasVoted
+      ? "¡Homenaje registrado para el 10!"
+      : "¿Qué emoción te genera la despedida de Leo?";
   }
 }
 
+// Contador de caracteres para el mensaje opcional
+if (tributeMessageInput && charCount) {
+  tributeMessageInput.addEventListener("input", (e) => {
+    charCount.textContent = `${e.target.value.length}/120`;
+  });
+}
+
+// Envío del voto
 async function handleSendVote() {
   if (!selectedEmotion) return;
-  
+
   const emo = selectedEmotion;
-  const selectedBtn = voteGrid.querySelector(`.vote-card[data-emotion-id="${emo.id}"]`);
-  
+  const rawMessage = tributeMessageInput ? tributeMessageInput.value.trim() : "";
+  const message = rawMessage.slice(0, 120);
+
   if (submitVoteBtn) {
     submitVoteBtn.disabled = true;
+    submitVoteBtn.innerHTML = `<span>Enviando al Monumental... ⚽</span>`;
   }
-  if (selectedBtn) {
-    selectedBtn.classList.add("is-voting");
-  }
-  
-  if (FIREBASE_CONFIG.apiKey === "REEMPLAZAR_API_KEY") {
+
+  // Si está en modo demostración local
+  if (isDemoMode || !votosRef) {
+    const demoVote = {
+      emotion_id: emo.id,
+      value: emo.value,
+      message: message || null,
+      timestamp: new Date().toISOString(),
+    };
+
+    window.votosLocales.push(demoVote);
+    saveLocalVotesToStorage(window.votosLocales);
+
+    localStorage.setItem("voted_messi_despedida", "true");
+    triggerAlbicelesteConfetti();
+    renderAllData(window.votosLocales);
+
     setTimeout(() => {
-      window.votosDemo.push({
-        emotion_id: emo.id,
-        value: emo.value,
-        moment: "general",
-        timestamp: new Date(),
-      });
-      
-      sessionStorage.setItem("voted_general", "true");
-      renderResults(window.votosDemo);
-      
-      if (selectedBtn) {
-        selectedBtn.classList.remove("is-voting");
-        selectedBtn.classList.add("is-confirmed");
-      }
-      
-      setTimeout(() => {
-        if (selectedBtn) selectedBtn.classList.remove("is-confirmed");
-        updateVoteAvailability();
-      }, 600);
-    }, 450);
+      updateVoteAvailability();
+    }, 400);
     return;
   }
 
+  // Envío a Firestore real
   try {
     await addDoc(votosRef, {
       emotion_id: emo.id,
       value: emo.value,
-      moment: "general",
+      message: message || null,
       timestamp: serverTimestamp(),
     });
-    
-    sessionStorage.setItem("voted_general", "true");
-    
-    if (selectedBtn) {
-      selectedBtn.classList.remove("is-voting");
-      selectedBtn.classList.add("is-confirmed");
-    }
-    
+
+    localStorage.setItem("voted_messi_despedida", "true");
+    triggerAlbicelesteConfetti();
+
     setTimeout(() => {
-      if (selectedBtn) selectedBtn.classList.remove("is-confirmed");
       updateVoteAvailability();
-    }, 600);
+    }, 400);
   } catch (err) {
-    if (selectedBtn) {
-      selectedBtn.classList.remove("is-voting");
-    }
-    if (submitVoteBtn) {
-      submitVoteBtn.disabled = false;
-    }
-    console.error("Error al votar:", err);
-    alert("No se pudo registrar el voto. Revisá tu conexión e intentá de nuevo.");
+    console.error("Error al registrar voto en Firebase:", err);
+    alert("Hubo un inconveniente al conectar con Firebase. Guardaremos tu voto de forma local.");
+    
+    // Fallback a local
+    const fallbackVote = {
+      emotion_id: emo.id,
+      value: emo.value,
+      message: message || null,
+      timestamp: new Date().toISOString(),
+    };
+    window.votosLocales.push(fallbackVote);
+    saveLocalVotesToStorage(window.votosLocales);
+    localStorage.setItem("voted_messi_despedida", "true");
+    triggerAlbicelesteConfetti();
+    renderAllData(window.votosLocales);
+    updateVoteAvailability();
   }
 }
 
@@ -348,150 +361,284 @@ if (submitVoteBtn) {
 }
 
 // ----------------------------------------------------------------------------
-// 6) Render: barras de desglose + tabla accesible + gauge, con datos en vivo
+// 7) RENDERIZADO: GAUGE + BARRAS + MURO DE TRIBUTOS + TABLA
 // ----------------------------------------------------------------------------
 
-function renderResults(votes) {
+function renderAllData(votes) {
   const counts = {};
   EMOTIONS.forEach((e) => (counts[e.id] = 0));
   let total = 0;
   let sumValues = 0;
+  const tributes = [];
 
   votes.forEach((v) => {
     if (counts[v.emotion_id] !== undefined) {
       counts[v.emotion_id]++;
       total++;
-      sumValues += v.value;
+      sumValues += v.value || 1;
+    }
+    if (v.message && typeof v.message === "string" && v.message.trim().length > 0) {
+      tributes.push({
+        emotion_id: v.emotion_id,
+        message: v.message.trim(),
+        timestamp: v.timestamp,
+      });
     }
   });
 
-  const avg = total > 0 ? sumValues / total : null;
+  // Total de votos y conteo
 
-  if (avg !== null) {
-    setGaugeValue(avg);
-    const near = closestEmotion(avg);
-    gaugeEmoji.textContent = near.emoji;
-    gaugeLabel.textContent = near.label;
-    gaugeValue.textContent = `Promedio: ${avg.toFixed(1)} / 6`;
-  } else {
-    setGaugeValue(1);
-    gaugeEmoji.textContent = "😐";
-    gaugeLabel.textContent = "Sin votos todavía";
-    gaugeValue.textContent = "—";
+  if (totalVotesEl) {
+    totalVotesEl.textContent = `${total} homenaje${total === 1 ? "" : "s"} registrado${total === 1 ? "" : "s"}`;
   }
-  totalVotesEl.textContent = `${total} voto${total === 1 ? "" : "s"} en total`;
 
-  barsContainer.innerHTML = "";
-  dataTableBody.innerHTML = "";
-  EMOTIONS.forEach((emo) => {
-    const c = counts[emo.id];
-    const pct = total > 0 ? (c / total) * 100 : 0;
+  const totalVotesHeader = document.getElementById("totalVotesHeader");
+  if (totalVotesHeader) {
+    totalVotesHeader.textContent = total;
+  }
 
-    const row = document.createElement("div");
-    row.className = "bar-row";
-    row.innerHTML = `
-      <span class="bar-emoji">${emo.emoji}</span>
-      <span class="bar-track">
-        <span class="bar-fill" style="width:${pct.toFixed(1)}%; background:${emo.color};"></span>
-      </span>
-      <span class="bar-meta">
-        <span class="bar-pct">${pct.toFixed(0)}%</span>
-        <span class="bar-count">${c} voto${c === 1 ? "" : "s"}</span>
-      </span>
-    `;
-    barsContainer.appendChild(row);
+  // Barras de progreso
+  if (barsContainer) {
+    barsContainer.innerHTML = "";
+    EMOTIONS.forEach((emo) => {
+      const c = counts[emo.id];
+      const pct = total > 0 ? (c / total) * 100 : 0;
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${emo.emoji} ${emo.label}</td><td>${c}</td><td>${pct.toFixed(1)}%</td>`;
-    dataTableBody.appendChild(tr);
-  });
+      const row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML = `
+        <span class="bar-emoji">${emo.emoji}</span>
+        <div class="bar-track-wrap">
+          <div class="bar-info-top">
+            <span>${emo.label}</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: ${pct.toFixed(1)}%; background: ${emo.color}; color: ${emo.color};"></div>
+          </div>
+        </div>
+        <div class="bar-meta">
+          <span class="bar-pct">${pct.toFixed(0)}%</span>
+          <span class="bar-count">${c} voto${c === 1 ? "" : "s"}</span>
+        </div>
+      `;
+      barsContainer.appendChild(row);
+    });
+  }
+
+  // Tabla accesible
+  if (dataTableBody) {
+    dataTableBody.innerHTML = "";
+    EMOTIONS.forEach((emo) => {
+      const c = counts[emo.id];
+      const pct = total > 0 ? (c / total) * 100 : 0;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${emo.emoji} <strong>${emo.label}</strong></td>
+        <td>${c}</td>
+        <td>${pct.toFixed(1)}%</td>
+      `;
+      dataTableBody.appendChild(tr);
+    });
+  }
+
+  // Muro de Mensajes al 10
+  renderTributesFeed(tributes);
 }
 
-// ----------------------------------------------------------------------------
-// 7) Suscripción en tiempo real a Firestore (todas las instancias)
-// ----------------------------------------------------------------------------
+function renderTributesFeed(tributes) {
+  if (!tributesFeed) return;
+  tributesFeed.innerHTML = "";
 
-function subscribeToVotes() {
-  if (FIREBASE_CONFIG.apiKey === "REEMPLAZAR_API_KEY") {
-    if (window.votosDemo) {
-      renderResults(window.votosDemo);
-    }
+  if (tributes.length === 0) {
+    tributesFeed.innerHTML = `
+      <div class="tribute-empty-state">
+        <span>✍️ Sé el primero en dejarle un mensaje o agradecimiento a Messi para el partido.</span>
+      </div>
+    `;
     return;
   }
 
-  if (unsubscribe) {
-    unsubscribe();
-    unsubscribe = null;
-  }
-  unsubscribe = onSnapshot(
-    votosRef,
-    (snapshot) => {
-      const votes = snapshot.docs.map((d) => d.data());
-      renderResults(votes);
-    },
-    (err) => {
-      console.error("Error al leer votos:", err);
-      totalVotesEl.textContent = "No se pudieron cargar los votos.";
-    }
-  );
+  // Ordenar los más recientes primero
+  const reversed = [...tributes].reverse();
+
+  reversed.slice(0, 25).forEach((t) => {
+    const emo = EMOTIONS.find((e) => e.id === t.emotion_id) || EMOTIONS[3];
+    const item = document.createElement("div");
+    item.className = "tribute-card-item";
+    item.style.setProperty("--tag-color", emo.color);
+
+    item.innerHTML = `
+      <div class="tribute-card-top">
+        <span class="tribute-author-tag" style="color: ${emo.color}">
+          <span>${emo.emoji}</span>
+          <span>${emo.label}</span>
+        </span>
+        <span class="tribute-time">Homenaje</span>
+      </div>
+      <p class="tribute-card-text">"${escapeHtml(t.message)}"</p>
+    `;
+    tributesFeed.appendChild(item);
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 // ----------------------------------------------------------------------------
-// 8) Toggle tabla accesible
+// 8) ALMACENAMIENTO Y DEMO LOCAL FALLBACK
 // ----------------------------------------------------------------------------
 
-toggleTableBtn.addEventListener("click", () => {
-  const isHidden = dataTable.hidden;
-  dataTable.hidden = !isHidden;
-  toggleTableBtn.textContent = isHidden ? "Ocultar tabla" : "Ver como tabla (accesible)";
-});
+function getInitialDemoVotes() {
+  const saved = localStorage.getItem("termometro_votos_messi_data");
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {}
+  }
+
+  return [
+    { emotion_id: "gratitud_eterna", value: 4, message: "Gracias infinitas Leo por Qatar 2022 y por hacernos tan felices toda la vida.", timestamp: "2026-10-06T08:15:00" },
+    { emotion_id: "tristeza_infinita", value: 1, message: "No quiero que termine nunca este partido. Se va el más grande de la historia.", timestamp: "2026-10-06T08:45:00" },
+    { emotion_id: "alegria_incontenible", value: 6, message: "Eternamente en el Olimpo del fútbol mundial. El 10 supremo.", timestamp: "2026-10-06T09:00:00" },
+    { emotion_id: "piel_gallina", value: 3, message: "Llorando en la tribuna del Monumental antes de que empiece. Gracias Leo.", timestamp: "2026-10-06T09:10:00" },
+    { emotion_id: "ganas_brindis", value: 5, message: "¡Brindando por todo lo que nos diste, salud Capitán!", timestamp: "2026-10-06T09:18:00" },
+    { emotion_id: "nostalgia_lagrimas", value: 2, message: "Un golazo más de tiro libre para el recuerdo por favor capitán.", timestamp: "2026-10-06T09:22:00" },
+  ];
+}
+
+function saveLocalVotesToStorage(votes) {
+  try {
+    localStorage.setItem("termometro_votos_messi_data", JSON.stringify(votes));
+  } catch (e) {}
+}
 
 // ----------------------------------------------------------------------------
-// 9) Init
+// 9) TOGGLE TABLA ACCESIBLE
 // ----------------------------------------------------------------------------
 
-function init() {
-  buildGaugeStatic();
+if (toggleTableBtn && dataTable) {
+  toggleTableBtn.addEventListener("click", () => {
+    const isHidden = dataTable.hidden;
+    dataTable.hidden = !isHidden;
+    toggleTableBtn.innerHTML = isHidden
+      ? "<span>▲ Ocultar tabla de datos</span>"
+      : "<span>📊 Ver tabla de datos accesible</span>";
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 10) INICIALIZACIÓN
+// ----------------------------------------------------------------------------
+
+async function resolveFirebaseConfig() {
+  // 1) Revisar si el archivo local firebase-config.js tiene credenciales reales
+  if (isValidFirebaseConfig(STATIC_CONFIG)) {
+    return STATIC_CONFIG;
+  }
+
+  // 2) Revisar si el endpoint /api/config de Vercel tiene credenciales
+  try {
+    const res = await fetch("/api/config");
+    if (res.ok) {
+      const remoteConfig = await res.json();
+      if (isValidFirebaseConfig(remoteConfig)) {
+        return remoteConfig;
+      }
+    }
+  } catch (err) {
+    // Normal en entorno estático o sin Vercel dev
+  }
+
+  return null;
+}
+
+async function init() {
   buildVoteGrid();
   updateVoteAvailability();
 
-  if (FIREBASE_CONFIG.apiKey === "REEMPLAZAR_API_KEY") {
-    console.warn("Firebase no configurado. Iniciando en modo demostración con datos de prueba.");
-    
-    const demoBanner = document.createElement("div");
-    demoBanner.style.cssText = `
-      background: linear-gradient(90deg, #fff3cd 0%, #ffeeba 100%);
-      color: #856404;
-      text-align: center;
-      padding: 12px 16px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      border-bottom: 1px solid #ffeeba;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-    `;
-    demoBanner.innerHTML = `
-      <span>⚠️</span>
-      <span><strong>Modo Demostración activo:</strong> Firebase no está configurado. Editá <code>firebase-config.js</code> para conectar tu proyecto real. ¡Podés votar y probar las funciones localmente!</span>
-    `;
-    document.body.insertBefore(demoBanner, document.body.firstChild);
+  activeFirebaseConfig = await resolveFirebaseConfig();
 
-    window.votosDemo = [
-      { emotion_id: "indiferencia", value: 1, moment: "general" },
-      { emotion_id: "nervios", value: 2, moment: "general" },
-      { emotion_id: "ilusion", value: 3, moment: "general" },
-      { emotion_id: "alegria", value: 4, moment: "general" },
-      { emotion_id: "euforia", value: 5, moment: "general" },
-      { emotion_id: "algarabia", value: 6, moment: "general" },
-    ];
+  if (activeFirebaseConfig) {
+    try {
+      const fbApp = initializeApp(activeFirebaseConfig);
+      db = getFirestore(fbApp);
+      votosRef = collection(db, "votos_messi");
 
-    renderResults(window.votosDemo);
+      // Suscripción en tiempo real a Firestore
+      const q = query(votosRef, orderBy("timestamp", "asc"), limit(1000));
+      unsubscribeVotes = onSnapshot(
+        votosRef,
+        (snapshot) => {
+          const votes = snapshot.docs.map((doc) => doc.data());
+          renderAllData(votes);
+        },
+        (err) => {
+          console.warn("Permisos o error en Firestore, pasando a modo local:", err);
+          activateDemoMode("Error de lectura en Firestore. Modo local activo.");
+        }
+      );
+
+      if (statusIndicator && statusText) {
+        statusIndicator.className = "status-indicator is-online";
+        statusText.innerHTML = `<strong>En vivo con Firebase:</strong> Sincronización en tiempo real activa`;
+      }
+    } catch (e) {
+      console.warn("Fallo al inicializar Firebase SDK:", e);
+      activateDemoMode("Firebase no inicializado. Modo simulación activo.");
+    }
   } else {
-    subscribeToVotes();
+    activateDemoMode("Modo Demostración Activo · Votos y animaciones operativas localmente");
+  }
+}
+
+function activateDemoMode(message) {
+  isDemoMode = true;
+  window.votosLocales = getInitialDemoVotes();
+  renderAllData(window.votosLocales);
+
+  if (statusIndicator && statusText) {
+    statusIndicator.className = "status-indicator is-demo";
+    statusText.innerHTML = `<strong>Modo Simulación:</strong> ${message}`;
   }
 }
 
 init();
+
+// Manejo del botón compartir interactivo
+const shareBtn = document.getElementById("shareBtn");
+if (shareBtn) {
+  shareBtn.addEventListener("click", async () => {
+    const shareData = {
+      title: "Termómetro del 10 — Despedida de Lionel Messi",
+      text: "¡Elegí tu emoción y dejale un mensaje al Capitán en su despedida en el Monumental!",
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // Usuario canceló compartir
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        const originalHtml = shareBtn.innerHTML;
+        shareBtn.innerHTML = `
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        `;
+        setTimeout(() => {
+          shareBtn.innerHTML = originalHtml;
+        }, 1800);
+      } catch (e) {
+        alert("Enlace: " + window.location.href);
+      }
+    }
+  });
+}

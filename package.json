@@ -1,0 +1,13 @@
+{
+  "name": "sentimiento-mundial",
+  "version": "1.0.0",
+  "description": "Termómetro del 10 — Despedida de Lionel Messi",
+  "main": "app.js",
+  "scripts": {
+    "dev": "npx serve -p 4173 .",
+    "start": "npx serve -p 4173 ."
+  },
+  "keywords": ["messi", "argentina", "termometro", "futbol"],
+  "author": "",
+  "license": "MIT"
+}

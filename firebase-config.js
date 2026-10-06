@@ -1,64 +1,55 @@
 /**
  * ============================================================================
- *  TERMÓMETRO DE LA FINAL — Configuración de Firebase
+ *  TERMÓMETRO DEL 10 — DESPEDIDA DE LIONEL MESSI
+ *  Configuración de Conexión a Firebase (Firestore)
  * ============================================================================
  *
- *  Este archivo conecta la app con tu proyecto de Firebase (Firestore).
- *  Seguí estos pasos ANTES de abrir index.html:
+ *  Partido: Argentina vs. Benin
+ *  Fecha: Martes 6 de Octubre
+ *  Sede: Estadio Mas Monumental (River Plate)
  *
- *  1) CREAR EL PROYECTO
- *     - Entrá a https://console.firebase.google.com/
- *     - "Agregar proyecto" → ponele un nombre (ej: "termometro-final-2026")
- *     - Podés desactivar Google Analytics, no hace falta para este caso de uso.
+ *  Pasos para conectar tu base de datos:
  *
- *  2) CREAR LA APP WEB
- *     - Dentro del proyecto: ícono "</>" (Agregar app → Web)
- *     - Ponele un apodo (ej: "termometro-web") y registrala.
- *     - Firebase te va a mostrar un objeto `firebaseConfig` con claves como
- *       apiKey, authDomain, projectId, etc. Copiá esos valores y pegalos
- *       reemplazando los placeholders de FIREBASE_CONFIG más abajo.
+ *  1) CREAR PROYECTO EN FIREBASE
+ *     - Ingresá a https://console.firebase.google.com/
+ *     - Creá un proyecto (ej: "despedida-messi-termometro").
+ *
+ *  2) CREAR APP WEB
+ *     - Dentro de tu proyecto, hacé click en el ícono de Web (</>).
+ *     - Copiá los valores de `firebaseConfig` y pegalos abajo en FIREBASE_CONFIG.
  *
  *  3) HABILITAR FIRESTORE
- *     - En el menú lateral: "Compilación" → "Firestore Database"
- *     - "Crear base de datos"
- *     - Elegí una ubicación (ej: la más cercana a tu audiencia, ej. southamerica-east1)
- *     - Empezá en "modo producción" (las reglas las configuramos manualmente abajo).
+ *     - En el menú lateral: Compilación -> Firestore Database.
+ *     - Creá la base de datos (por ejemplo en modo de producción).
  *
- *  4) REGLAS DE SEGURIDAD (Firestore → pestaña "Reglas")
- *     Reemplazá el contenido por esto y publicá:
+ *  4) REGLAS DE SEGURIDAD (Pestaña "Reglas" en Firestore):
+ *     Pegá lo siguiente y presioná "Publicar":
  *
  *       rules_version = '2';
  *       service cloud.firestore {
  *         match /databases/{database}/documents {
- *           match /votos/{votoId} {
+ *           match /votos_messi/{votoId} {
  *             allow read: if true;
- *             // Solo permitimos crear documentos (no editar ni borrar),
- *             // y validamos la forma básica del voto para evitar basura.
- *             allow create: if request.resource.data.keys().hasAll(
- *                              ['emotion_id', 'value', 'moment', 'timestamp']
- *                            )
- *                            && request.resource.data.emotion_id is string
- *                            && request.resource.data.value is number
- *                            && request.resource.data.moment is string;
+ *             allow create: if request.resource.data.keys().hasAll(['emotion_id', 'value', 'timestamp'])
+ *                           && request.resource.data.emotion_id in [
+ *                                'tristeza_infinita',
+ *                                'nostalgia_lagrimas',
+ *                                'piel_gallina',
+ *                                'gratitud_eterna',
+ *                                'ganas_brindis',
+ *                                'alegria_incontenible'
+ *                              ]
+ *                           && request.resource.data.value is number
+ *                           && (!('message' in request.resource.data) || request.resource.data.message == null || request.resource.data.message is string);
  *             allow update, delete: if false;
  *           }
  *         }
  *       }
  *
- *     NOTA: `allow read, write: if true` a secas también funciona (y es lo más
- *     simple) porque esta app es de voto anónimo, sin datos sensibles ni
- *     autenticación. La versión de arriba es un poco más estricta (evita que
- *     cualquiera edite/borre votos ajenos) pero ambas son aceptables para este
- *     caso de uso público.
- *
- *  5) CREAR LA COLECCIÓN
- *     - No hace falta crearla a mano: en cuanto se emita el primer voto desde
- *       la app, Firestore crea automáticamente la colección `votos`.
- *
- *  6) PEGAR LAS CREDENCIALES
- *     - Reemplazá cada "REEMPLAZAR_..." de FIREBASE_CONFIG por el valor real
- *       que te dio Firebase en el paso 2.
- *
+ *  5) LISTO:
+ *     - La app detectará automáticamente las credenciales.
+ *     - Mientras no estén configuradas, la app funcionará en "Modo Simulación Local"
+ *       permitiendo votar y ver todas las animaciones sin romperse.
  * ============================================================================
  */
 

@@ -1,515 +1,317 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
-/* ============================================================
-   Termómetro de la Final — estilos
-   Mobile-first, look de sitio deportivo de noticias
-   ============================================================ */
+/* ============================================================================
+   TERMÓMETRO DEL 10 — ESTILOS EDITORIALES Y PARÁMETROS DE DISEÑO
+   Alineado con el sistema de diseño interactivo de la Selección Argentina:
+   - Paleta: Argentina Celeste (#75AADB), Celeste Claro (#E8F3FA), Navy (#0A192F),
+             Gold (#F6B40E), Gold Claro (#FEF8E7), Escala Slate (100 - 900)
+   - Tipografía: Plus Jakarta Sans (Texto) & Outfit (Display/Titulares)
+   - Formato: Widget interactivo periodístico con bordes redondeados y micro-interacciones
+   ============================================================================ */
 
 :root {
-  --ink: #14181f;
-  --ink-soft: #4a5060;
-  --ink-muted: #757c8c;
-  --surface: #f6f7f9;
-  --surface-card: #ffffff;
-  --border: #e2e5eb;
-  --brand: #0b3d91;
-  --brand-dark: #082a66;
-  --live-red: #d32f2f;
-  --radius: 14px;
-  --shadow: 0 2px 10px rgba(20, 24, 31, 0.06), 0 1px 2px rgba(20, 24, 31, 0.05);
-  font-size: 16px;
+  --argentina-celeste: #75AADB;
+  --argentina-celeste-light: #E8F3FA;
+  --argentina-navy: #0A192F;
+  --argentina-gold: #F6B40E;
+  --argentina-gold-light: #FEF8E7;
+
+  --slate-50: #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  padding: 0;
-  background: var(--surface);
-  color: var(--ink);
-  font-family: "Outfit", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
+* {
+  box-sizing: border-box;
 }
 
-.wrap {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 0 16px;
+body {
+  font-family: var(--font-sans);
 }
 
-/* ---------- header ---------- */
-
-.site-header {
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
-  color: #fff;
-  padding: 22px 0 26px;
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
 }
 
-.site-header .kicker {
-  display: inline-block;
+/* Canvas Confeti Albiceleste */
+.confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Gradientes y sombras editoriales */
+.hero-gradient {
+  background: linear-gradient(180deg, rgba(10, 25, 47, 0.75) 0%, rgba(10, 25, 47, 0.05) 45%, rgba(10, 25, 47, 0.9) 100%);
+}
+
+.timeline-track-glow {
+  box-shadow: 0 0 12px rgba(246, 180, 14, 0.35);
+}
+
+/* Barra de scroll oculta para feeds fluidos */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================================================
+   TARJETAS DE VOTACIÓN (VOTE CARDS)
+   ============================================================================ */
+
+.vote-card {
+  position: relative;
+  background: #f8fafc;
+  border: 1px solid var(--slate-200);
+  border-radius: 14px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  user-select: none;
+}
+
+.vote-card:hover:not(:disabled) {
+  background: var(--argentina-celeste-light);
+  border-color: var(--argentina-celeste);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(117, 170, 219, 0.2);
+}
+
+.vote-card:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.vote-card.is-selected {
+  background: var(--argentina-celeste-light);
+  border-color: var(--argentina-celeste);
+  box-shadow: 0 0 0 2px rgba(117, 170, 219, 0.35), 0 4px 10px rgba(10, 25, 47, 0.06);
+  transform: translateY(-1px);
+}
+
+.vote-card.is-selected .vc-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.vc-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
   font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.15);
-  padding: 3px 10px;
-  border-radius: 999px;
-  margin-bottom: 10px;
+  color: var(--argentina-gold);
+  opacity: 0;
+  transform: scale(0.3);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-weight: 900;
 }
 
-.site-header h1 {
-  margin: 0 0 6px;
-  font-size: 1.6rem;
+.vc-emoji {
+  font-size: 1.65rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.08));
+  transition: transform 0.2s ease;
+  margin-bottom: 2px;
+}
+
+.vote-card:hover:not(:disabled) .vc-emoji {
+  transform: scale(1.12);
+}
+
+.vc-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--argentina-navy);
+  line-height: 1.15;
+}
+
+.vc-quote {
+  font-size: 0.65rem;
+  color: var(--slate-500);
   line-height: 1.2;
 }
 
-.site-header .subtitle {
-  margin: 0;
-  font-size: 0.92rem;
-  color: rgba(255, 255, 255, 0.88);
+.vote-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
-/* ---------- moment banner ---------- */
-
-.moment-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 18px;
-  padding: 12px 14px;
-  background: var(--surface-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.moment-badge {
-  font-weight: 700;
-  font-size: 0.9rem;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.moment-badge.is-live {
-  background: #fdeaea;
-  color: var(--live-red);
-  border-color: #f6c6c6;
-  animation: pulse-badge 1.8s ease-in-out infinite;
-}
-
-.moment-badge.is-previa {
-  background: #fff8e1;
-  color: #8a6100;
-  border-color: #ffe6a3;
-}
-
-.moment-badge.is-post {
-  background: #e8f1ff;
-  color: var(--brand);
-  border-color: #cfe0fb;
-}
-
-.moment-badge.is-closed {
-  background: var(--surface);
-  color: var(--ink-muted);
-}
-
-.moment-text {
-  font-size: 0.86rem;
-  color: var(--ink-soft);
-}
-
-@keyframes pulse-badge {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.25); }
-  50% { box-shadow: 0 0 0 5px rgba(211, 47, 47, 0); }
-}
-
-/* ---------- moment tabs ---------- */
-
-.moment-tabs {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.tab-btn {
-  flex: 1 1 0;
-  white-space: nowrap;
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-  background: var(--surface-card);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 8px 10px;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.tab-btn:hover { background: var(--surface); }
-
-.tab-btn.is-active {
-  background: var(--brand);
-  border-color: var(--brand);
-  color: #fff;
-}
-
-/* ---------- gauge ---------- */
-
-.gauge-card {
-  margin-top: 16px;
-  background: var(--surface-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 18px 16px 14px;
-  text-align: center;
-}
-
-.gauge-wrap {
-  position: relative;
-  max-width: 340px;
-  margin: 0 auto;
-}
-
-#gaugeSvg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.gauge-needle {
-  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.gauge-active-fill {
-  transition: d 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.gauge-readout {
-  margin-top: -6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.gauge-emoji {
-  font-size: 2.1rem;
-  line-height: 1;
-}
-
-.gauge-label {
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: var(--ink);
-}
-
-.gauge-value {
-  font-size: 0.8rem;
-  color: var(--ink-muted);
-}
-
-.total-votes {
-  margin: 10px 0 0;
-  font-size: 0.82rem;
-  color: var(--ink-muted);
-}
-
-/* ---------- breakdown bars ---------- */
-
-.section-title {
-  font-size: 1rem;
-  margin: 20px 0 10px;
-  color: var(--ink);
-}
-
-.bars {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+/* ============================================================================
+   BARRAS DE DISTRIBUCIÓN
+   ============================================================================ */
 
 .bar-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 24px 1fr 56px;
   align-items: center;
-  gap: 10px;
-  background: var(--surface-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 10px;
+  gap: 8px;
 }
 
-.bar-row .bar-emoji {
+.bar-emoji {
   font-size: 1.15rem;
-  width: 26px;
   text-align: center;
+  line-height: 1;
+}
+
+.bar-track-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bar-info-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--slate-800);
 }
 
 .bar-track {
-  position: relative;
-  height: 10px;
-  background: var(--surface);
+  width: 100%;
+  height: 7px;
+  background: var(--slate-200);
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid var(--border);
+  position: relative;
 }
 
 .bar-fill {
   height: 100%;
   border-radius: 999px;
-  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 .bar-meta {
+  text-align: right;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  min-width: 54px;
+  line-height: 1.1;
 }
 
 .bar-pct {
-  font-weight: 700;
-  font-size: 0.86rem;
-  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--argentina-navy);
 }
 
 .bar-count {
-  font-size: 0.7rem;
-  color: var(--ink-muted);
+  font-size: 0.62rem;
+  color: var(--slate-500);
 }
 
-/* ---------- vote section ---------- */
+/* ============================================================================
+   MURO DE MENSAJES (TRIBUTES)
+   ============================================================================ */
 
-.vote-closed-msg {
-  background: #fff8e1;
-  border: 1px solid #ffe6a3;
-  color: #6b4c00;
-  padding: 10px 12px;
+.tribute-card-item {
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-left: 3px solid var(--tag-color, var(--argentina-celeste));
   border-radius: 10px;
-  font-size: 0.88rem;
-}
-
-.vote-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.vote-card {
-  --accent: #999;
-  position: relative;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  animation: fade-slide-in 0.3s ease-out;
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tribute-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+}
+
+.tribute-author-tag {
+  font-weight: 700;
+  display: flex;
   align-items: center;
   gap: 4px;
-  padding: 16px 8px 12px;
-  background: var(--surface-card);
-  border: 1px solid var(--border);
-  border-left: 5px solid var(--accent);
-  border-radius: 12px;
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--ink);
-  box-shadow: var(--shadow);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  -webkit-tap-highlight-color: transparent;
+  font-size: 0.68rem;
 }
 
-.vote-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(20, 24, 31, 0.1);
+.tribute-time {
+  color: var(--slate-400);
+  font-size: 0.62rem;
 }
 
-.vote-card:active,
-.vote-card.is-voting {
-  transform: scale(0.97);
+.tribute-card-text {
+  font-size: 0.75rem;
+  color: var(--slate-700);
+  line-height: 1.35;
+  font-style: italic;
 }
 
-.vote-card.is-confirmed {
-  animation: confirm-pop 0.5s ease;
-}
-
-@keyframes confirm-pop {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.08); box-shadow: 0 6px 20px rgba(20, 24, 31, 0.18); }
-  100% { transform: scale(1); }
-}
-
-.vote-card:disabled,
-.vote-card[disabled] {
-  cursor: not-allowed;
-  opacity: 0.55;
-  transform: none !important;
-}
-
-.vote-card .vc-emoji {
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.vote-card .vc-label {
-  font-weight: 700;
-  font-size: 0.88rem;
+.tribute-empty-state {
   text-align: center;
+  padding: 24px 8px;
+  color: var(--slate-400);
+  font-size: 0.75rem;
 }
 
-.vote-card .vc-check {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 0.9rem;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+/* ============================================================================
+   ESTADO DE CONEXIÓN A FIRESTORE / MODO LOCAL
+   ============================================================================ */
+
+.status-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  display: inline-block;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  flex-shrink: 0;
 }
 
-.vote-card.is-confirmed .vc-check {
-  opacity: 1;
+.status-indicator.is-online {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  animation: pulse-green 2s infinite ease-in-out;
 }
 
-.vote-card.is-selected {
-  border: 2px solid var(--accent);
-  background: var(--surface);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 6px 18px rgba(20, 24, 31, 0.12);
+.status-indicator.is-demo {
+  background: var(--argentina-celeste);
+  box-shadow: 0 0 8px rgba(117, 170, 219, 0.6);
 }
 
-.submit-vote-btn {
-  display: block;
-  width: 100%;
-  max-width: 280px;
-  margin: 20px auto 0;
-  padding: 12px 24px;
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
-  background: var(--brand);
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
-}
-
-.submit-vote-btn:hover:not(:disabled) {
-  background: var(--brand-dark);
-  transform: translateY(-1px);
-}
-
-.submit-vote-btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.submit-vote-btn:disabled {
-  background: var(--ink-muted);
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ---------- table view (accessible alt) ---------- */
-
-.table-view-toggle {
-  text-align: center;
-  margin: 18px 0 4px;
-}
-
-.link-btn {
-  background: none;
-  border: none;
-  color: var(--brand);
-  font-size: 0.84rem;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 6px;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 8px 0 20px;
-  font-size: 0.85rem;
-  background: var(--surface-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.data-table caption {
-  caption-side: top;
-  text-align: left;
-  font-size: 0.78rem;
-  color: var(--ink-muted);
-  padding: 8px 10px 0;
-}
-
-.data-table th,
-.data-table td {
-  text-align: left;
-  padding: 8px 10px;
-  border-top: 1px solid var(--border);
-}
-
-.data-table th {
-  color: var(--ink-soft);
-  font-weight: 700;
-}
-
-/* ---------- footer ---------- */
-
-.site-footer {
-  text-align: center;
-  color: var(--ink-muted);
-  font-size: 0.76rem;
-  padding: 28px 16px 34px;
-}
-
-/* ---------- responsive ---------- */
-
-@media (min-width: 480px) {
-  .vote-grid {
-    grid-template-columns: repeat(3, 1fr);
+@keyframes pulse-green {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
   }
-}
-
-@media (min-width: 640px) {
-  .site-header h1 { font-size: 1.9rem; }
-  .gauge-wrap { max-width: 380px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gauge-needle,
-  .gauge-fill-arc,
-  .bar-fill,
-  .vote-card {
-    transition: none;
-    animation: none;
+  50% {
+    opacity: 0.5;
+    transform: scale(1.15);
   }
-}
-
-/* ---------- dark mode ---------- */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #eef0f4;
-    --ink-soft: #c3c8d4;
-    --ink-muted: #8b93a3;
-    --surface: #0f1218;
-    --surface-card: #171b23;
-    --border: #262c38;
-    --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-  }
-
-  .moment-badge.is-live { background: #3a1616; color: #ff8a8a; border-color: #5c2323; }
-  .moment-badge.is-previa { background: #362c0c; color: #ffd873; border-color: #55461a; }
-  .moment-badge.is-post { background: #10233f; color: #9cc1ff; border-color: #1c3a63; }
-  .vote-closed-msg { background: #362c0c; color: #ffd873; border-color: #55461a; }
 }

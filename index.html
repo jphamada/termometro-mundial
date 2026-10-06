@@ -1,85 +1,344 @@
 <!DOCTYPE html>
-<html lang="es-AR">
+<html lang="es">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Termómetro de la Final — España vs Argentina/Inglaterra</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Termómetro del 10 — Despedida de Lionel Messi | Argentina vs Benin</title>
   <meta name="description"
-    content="Votá cómo te sentís respecto a la final del Mundial 2026 y mirá en tiempo real cómo se siente toda la comunidad." />
-  <link rel="stylesheet" href="style.css" />
+    content="Medí tus emociones en tiempo real para el partido de despedida de Lionel Messi en la Selección Argentina vs Benin en el Estadio Monumental, martes 6 de octubre." />
+  <meta name="theme-color" content="#0A192F" />
+
+  <!-- Tailwind CSS CDN con plugins -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Google Fonts: Plus Jakarta Sans (Cuerpo) y Outfit (Display/Titulares) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Outfit"', 'sans-serif'],
+          },
+          colors: {
+            argentina: {
+              celeste: '#75AADB',
+              celesteLight: '#E8F3FA',
+              navy: '#0A192F',
+              gold: '#F6B40E',
+              goldLight: '#FEF8E7',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="style.css?v=20261006_emociones" />
+
+  <style data-purpose="custom-scrollbar">
+    /* Ocultar barra de desplazamiento nativa manteniendo funcionalidad swipe */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+
+  <style data-purpose="layout-tweaks">
+    /* Gradiente editorial para tarjetas y efectos luminosos */
+    .hero-gradient {
+      background: linear-gradient(180deg, rgba(10, 25, 47, 0.75) 0%, rgba(10, 25, 47, 0.05) 45%, rgba(10, 25, 47, 0.9) 100%);
+    }
+    .timeline-track-glow {
+      box-shadow: 0 0 12px rgba(246, 180, 14, 0.35);
+    }
+  </style>
 </head>
 
-<body>
+<body
+  class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen py-4 px-3 flex justify-center items-start selection:bg-argentina-celeste selection:text-white">
 
-  <header class="site-header">
-    <div class="wrap">
-      <span class="kicker">MUNDIAL 2026 · FINAL</span>
-      <h1>🌡️ Termómetro de la Final</h1>
-      <p class="subtitle">Argentina vs España</p>
-    </div>
-  </header>
+  <!-- Canvas de papelitos y confeti albiceleste -->
+  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
 
-  <main class="wrap">
+  <!-- BEGIN: InteractiveArticleContainer -->
+  <!-- Contenedor adaptado a estándar móvil / widget editorial (390px - 440px) -->
+  <main
+    class="w-full max-w-[390px] sm:max-w-[430px] mx-auto bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-200/80 overflow-hidden flex flex-col"
+    data-purpose="mobile-interactive-widget">
 
+    <!-- BEGIN: HeaderSection -->
+    <header class="p-4 pb-3 border-b border-slate-100 bg-white" data-purpose="widget-header">
+      <!-- Fila superior: Tag temático, contador de homenajes y botón compartir -->
+      <div class="flex items-center justify-between gap-2 mb-2.5">
+        <span
+          class="inline-flex items-center gap-1.5 bg-argentina-navy text-white text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full uppercase">
+          Especial Interactivo
+        </span>
 
+        <div class="flex items-center gap-2">
+          <!-- Contador en vivo en cabecera -->
+          <span
+            class="px-2.5 py-0.5 text-[11px] font-semibold tracking-wide bg-slate-100 text-slate-700 rounded-full border border-slate-200"
+            id="headerCounterBadge">
+            Pulso <strong class="text-argentina-navy font-bold" id="totalVotesHeader">0</strong>
+          </span>
 
-    <!-- Panel de votación -->
-    <section class="vote-section" aria-label="Votar">
-      <h2 class="section-title" id="voteTitle">¿Qué emoción sentís para la final del Mundial?</h2>
-      <p class="vote-closed-msg" id="voteClosedMsg" hidden></p>
-      <div class="vote-grid" id="voteGrid">
-        <!-- generado por JS -->
-      </div>
-      <button type="button" id="submitVoteBtn" class="submit-vote-btn" disabled>Enviar Voto</button>
-    </section>
-
-    <!-- Gauge / termómetro -->
-    <section class="gauge-card" aria-label="Promedio emocional de la comunidad">
-      <div class="gauge-wrap">
-        <svg id="gaugeSvg" viewBox="0 0 320 200" role="img" aria-labelledby="gaugeTitle gaugeDesc">
-          <title id="gaugeTitle">Termómetro emocional</title>
-          <desc id="gaugeDesc">Promedio ponderado de los votos de la comunidad</desc>
-        </svg>
-        <div class="gauge-readout">
-          <span class="gauge-emoji" id="gaugeEmoji">😐</span>
-          <span class="gauge-label" id="gaugeLabel">Sin datos</span>
-          <span class="gauge-value" id="gaugeValue">—</span>
+          <!-- Botón compartir nativo/web share -->
+          <button id="shareBtn" aria-label="Compartir este homenaje"
+            class="p-1.5 text-slate-500 hover:text-argentina-navy hover:bg-slate-100 rounded-full transition-colors active:scale-95"
+            type="button">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+              stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
+              <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
+            </svg>
+          </button>
         </div>
       </div>
-      <p class="total-votes" id="totalVotes">0 votos</p>
-    </section>
 
-    <!-- Desglose por emoción -->
-    <section class="breakdown" aria-label="Desglose de votos por emoción">
-      <h2 class="section-title">Cómo se siente la comunidad</h2>
-      <div class="bars" id="barsContainer">
-        <!-- generado por JS -->
+      <!-- Título de sección editorial -->
+      <h1 class="text-base sm:text-[17px] font-bold font-display leading-tight text-argentina-navy">
+        Termómetro del 10: Despedida de Lionel Messi
+      </h1>
+    </header>
+    <!-- END: HeaderSection -->
+
+    <!-- BEGIN: MainCard Hero -->
+    <article class="p-3.5 pb-2" data-purpose="active-milestone-card">
+      <div class="bg-white rounded-2xl overflow-hidden border border-slate-200/90 shadow-sm flex flex-col">
+        <!-- Contenedor de Imagen 16:10 con badges flotantes -->
+        <div class="relative w-full aspect-[16/10] bg-argentina-navy overflow-hidden group">
+          <img alt="Lionel Messi en el Estadio Monumental"
+            class="w-full h-full object-cover object-center transform transition-transform duration-500 scale-[1.02]"
+            loading="eager" src="assets/messi_monumental.jpg">
+
+          <!-- Capa de gradiente protector para legibilidad de badges -->
+          <div class="absolute inset-0 hero-gradient pointer-events-none"></div>
+
+          <!-- Tag superior torneo/evento -->
+          <div class="absolute top-2.5 left-2.5 z-10">
+            <span
+              class="inline-flex items-center px-2 py-1 rounded bg-black/60 backdrop-blur-md text-[10px] font-semibold text-slate-100 uppercase tracking-wider border border-white/15">
+              El Último Baile • Selección Argentina
+            </span>
+          </div>
+
+          <!-- Badge destacado de estadísticas / estadio -->
+          <div class="absolute bottom-2.5 right-2.5 z-10">
+            <span
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md text-[10.5px] font-bold text-white border border-argentina-gold/40 shadow-lg">
+              <span class="w-2 h-2 rounded-full bg-argentina-gold animate-pulse"></span>
+              Estadio Mas Monumental • River Plate
+            </span>
+          </div>
+        </div>
+
+        <!-- Contenido textual editorial -->
+        <div class="p-3.5 pt-3">
+          <!-- Metadatos de fecha y lugar -->
+          <div class="flex items-center flex-wrap gap-2 text-xs mb-2">
+            <span
+              class="inline-flex items-center gap-1.5 font-semibold text-argentina-navy bg-argentina-celesteLight px-2.5 py-1 rounded-md text-[11px]">
+              <svg class="w-3.5 h-3.5 text-argentina-celeste" fill="none" stroke="currentColor" stroke-width="2"
+                viewBox="0 0 24 24">
+                <rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+                <line x1="16" x2="16" y1="2" y2="6"></line>
+                <line x1="8" x2="8" y1="2" y2="6"></line>
+                <line x1="3" x2="21" y1="10" y2="10"></line>
+              </svg>
+              Martes 6 de Octubre
+            </span>
+            <span class="text-slate-400 text-[11px] font-medium">• Argentina vs. Benin</span>
+          </div>
+
+          <!-- Titular del momento deportivo -->
+          <h2 class="text-[17px] font-extrabold font-display leading-tight text-slate-900 mb-1.5">
+            ¿Qué sentís con la despedida del Capitán?
+          </h2>
+
+          <!-- Bajada narrativa de valor periodístico -->
+          <p class="text-xs text-slate-600 leading-relaxed">
+            El último partido de Lionel Andrés Messi con la celeste y blanca. Elegí tu emoción en tiempo real, dejale
+            un mensaje al 10 y mirá cómo late el corazón de todo un país.
+          </p>
+        </div>
+      </div>
+    </article>
+    <!-- END: MainCard Hero -->
+
+    <!-- BEGIN: VotingSection -->
+    <section class="p-3.5 pt-1.5" aria-label="Elegí tu emoción">
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5 flex flex-col">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <svg class="w-3 h-3 text-argentina-celeste" fill="none" stroke="currentColor" stroke-width="2"
+              viewBox="0 0 24 24">
+              <path
+                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+            Tu Sentimiento
+          </span>
+          <span class="text-[9.5px] font-medium text-slate-400">Toca para elegir</span>
+        </div>
+
+        <h3 class="text-xs font-bold font-display text-slate-800 mb-2" id="voteTitle">
+          ¿Qué emoción te genera este momento histórico?
+        </h3>
+
+        <!-- Mensaje de confirmación cuando ya votó -->
+        <div class="vote-closed-msg p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-3 text-xs mb-3"
+          id="voteClosedMsg" hidden>
+          <span
+            class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">✓</span>
+          <div>
+            <strong class="font-bold text-slate-900 block">¡Homenaje registrado con éxito!</strong>
+            <p class="text-slate-600 text-[11px]">Gracias por ser parte del pulso colectivo para Lionel en el Monumental.</p>
+          </div>
+        </div>
+
+        <!-- 1. Grid de botones para votar (Renderizado dinámico desde app.js) -->
+        <div class="vote-grid grid grid-cols-2 gap-2 mb-3" id="voteGrid" role="group" aria-label="Opciones de emociones">
+        </div>
+
+        <!-- Dedicatoria opcional al 10 -->
+        <div class="tribute-input-container bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 mb-3"
+          id="tributeInputBox">
+          <div class="flex justify-between items-center mb-1 text-[11px] font-semibold text-slate-700">
+            <label for="tributeMessage" class="flex items-center gap-1 cursor-pointer">
+              <span>✍️ Un mensaje a Messi (Opcional):</span>
+            </label>
+            <span class="text-[10px] text-slate-400 font-normal" id="charCount">0/120</span>
+          </div>
+          <div class="input-action-row">
+            <input type="text" id="tributeMessage"
+              class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-argentina-celeste focus:ring-1 focus:ring-argentina-celeste/40 transition-all"
+              placeholder="Ej: Gracias de por vida Leo, nos diste la alegría más grande... 🐐" maxlength="120" />
+          </div>
+        </div>
+
+        <!-- 2. Botón para registrar la emoción -->
+        <button type="button" id="submitVoteBtn"
+          class="w-full py-2.5 px-4 rounded-xl bg-argentina-navy hover:bg-[#122846] disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] border border-argentina-celeste/20"
+          disabled>
+          <span class="btn-icon">💙</span>
+          <span class="btn-text">Registrar Mi Emoción</span>
+        </button>
       </div>
     </section>
+    <!-- END: VotingSection -->
 
-    <p class="table-view-toggle">
-      <button type="button" id="toggleTableBtn" class="link-btn">Ver como tabla (accesible)</button>
-    </p>
-    <table class="data-table" id="dataTable" hidden>
-      <caption>Detalle de votos por emoción — momento seleccionado</caption>
+    <!-- BEGIN: DistributionSection -->
+    <section class="p-3.5 pt-1.5" aria-label="Distribución de sentimientos">
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <svg class="w-3 h-3 text-argentina-celeste" fill="none" stroke="currentColor" stroke-width="2"
+              viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            El Latido Colectivo
+          </span>
+          <span
+            class="px-2 py-0.5 text-[10px] font-bold bg-argentina-goldLight text-argentina-navy rounded-full border border-argentina-gold/40 shadow-xs"
+            id="totalVotes">
+            0 homenajes
+          </span>
+        </div>
+
+        <h3 class="text-xs font-bold font-display text-slate-800 mb-2.5">
+          Distribución de Emociones en Vivo
+        </h3>
+
+        <!-- Barras de progreso de sentimientos -->
+        <div class="bars flex flex-col gap-2.5" id="barsContainer">
+          <!-- Renderizado dinámico desde app.js -->
+        </div>
+      </div>
+    </section>
+    <!-- END: DistributionSection -->
+
+    <!-- BEGIN: TributesWallSection -->
+    <section class="p-3.5 pt-1.5 pb-3" aria-label="Muro de mensajes al 10">
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5">
+        <div class="flex items-center justify-between mb-2.5">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <svg class="w-3 h-3 text-argentina-celeste" fill="none" stroke="currentColor" stroke-width="2"
+              viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Palabras al 10
+          </span>
+          <span
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold tracking-wider">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+            EN VIVO
+          </span>
+        </div>
+
+        <!-- Feed de mensajes scrollable -->
+        <div class="tributes-feed flex flex-col gap-2 max-h-[320px] overflow-y-auto no-scrollbar pr-0.5"
+          id="tributesFeed">
+          <!-- Mensajes renderizados en tiempo real -->
+        </div>
+      </div>
+    </section>
+    <!-- END: TributesWallSection -->
+
+    <!-- Tabla accesible oculta -->
+    <table class="data-table hidden" id="dataTable" hidden>
+      <caption>Estadísticas acumuladas de votos por emoción</caption>
       <thead>
         <tr>
-          <th>Emoción</th>
-          <th>Votos</th>
-          <th>%</th>
+          <th scope="col">Emoción</th>
+          <th scope="col">Votos</th>
+          <th scope="col">Porcentaje</th>
         </tr>
       </thead>
       <tbody id="dataTableBody"></tbody>
     </table>
 
+    <!-- Estado de sincronización en tiempo real -->
+    <div class="px-4 py-2 bg-slate-50/80 border-t border-slate-200/80 flex items-center justify-center gap-2 text-[10px] text-slate-500"
+      id="dbStatusBar">
+      <span class="status-indicator" id="statusIndicator"></span>
+      <span class="status-text font-medium" id="statusText">Conectando servicio de datos...</span>
+    </div>
+
+    <!-- BEGIN: BottomAffordance -->
+    <!-- Indicador táctil de final de widget y firma editorial -->
+    <footer class="py-2.5 bg-white flex flex-col items-center justify-center border-t border-slate-100 gap-1 text-center">
+      <div class="flex items-center gap-1 text-argentina-gold text-[10px] tracking-widest font-black">
+        ★ ★ ★
+      </div>
+      <p class="text-[10px] font-bold text-argentina-navy">
+        Termómetro del 10 · Especial Interactivo
+      </p>
+      <p class="text-[9.5px] text-slate-400">
+        Argentina vs. Benin · Mas Monumental
+      </p>
+      <div aria-hidden="true" class="w-12 h-1 bg-slate-200 rounded-full mt-1.5"></div>
+    </footer>
+    <!-- END: BottomAffordance -->
+
   </main>
+  <!-- END: InteractiveArticleContainer -->
 
-  <footer class="site-footer">
-    <p>Voto anónimo y libre · Los datos se actualizan en tiempo real · Hecho para hinchas del Mundial 2026</p>
-  </footer>
-
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=20261006_emociones"></script>
 </body>
 
 </html>
