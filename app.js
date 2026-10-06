@@ -665,8 +665,13 @@ if (shareBtn) {
         `;
         setTimeout(() => {
           shareBtn.innerHTML = originalHtml;
-        }, 1800);
       } catch (e) {
+        alert("Enlace: " + window.location.href);
+      }
+    }
+  });
+}
+
 // ----------------------------------------------------------------------------
 // 11) DETECCIÓN DE MODO EMBEBIDO (IFRAME) Y COMUNICACIÓN RESPONSIVE
 // ----------------------------------------------------------------------------
