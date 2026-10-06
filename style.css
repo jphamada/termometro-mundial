@@ -32,8 +32,33 @@
   box-sizing: border-box;
 }
 
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 body {
   font-family: var(--font-sans);
+}
+
+/* Modo Embebido en iFrame: Elimina márgenes exteriores y fondo gris */
+body.is-embedded {
+  background: transparent !important;
+  padding: 0 !important;
+  min-height: auto !important;
+}
+
+body.is-embedded main {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
 }
 
 h1, h2, h3, .font-display {
@@ -313,5 +338,36 @@ h1, h2, h3, .font-display {
   50% {
     opacity: 0.5;
     transform: scale(1.15);
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE TWEAKS ADICIONALES
+   ============================================================================ */
+
+@media (max-width: 360px) {
+  .vote-card {
+    padding: 8px 6px;
+  }
+  .vc-emoji {
+    font-size: 1.35rem;
+  }
+  .vc-label {
+    font-size: 0.72rem;
+  }
+  .vc-quote {
+    font-size: 0.58rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .vote-card {
+    padding: 14px 10px;
+  }
+  .vc-emoji {
+    font-size: 1.85rem;
+  }
+  .vc-label {
+    font-size: 0.84rem;
   }
 }

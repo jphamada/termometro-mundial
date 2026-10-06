@@ -41,7 +41,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=20261006_v3" />
+  <link rel="stylesheet" href="style.css?v=20261006_responsive" />
 
   <style data-purpose="custom-scrollbar">
     /* Ocultar barra de desplazamiento nativa manteniendo funcionalidad swipe */
@@ -68,15 +68,15 @@
 </head>
 
 <body
-  class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen py-4 px-3 flex justify-center items-start selection:bg-argentina-celeste selection:text-white">
+  class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen p-0 sm:py-4 sm:px-3 flex justify-center items-start selection:bg-argentina-celeste selection:text-white">
 
   <!-- Canvas de papelitos y confeti albiceleste -->
   <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
 
   <!-- BEGIN: InteractiveArticleContainer -->
-  <!-- Contenedor adaptado a estándar móvil / widget editorial (390px - 440px) -->
+  <!-- Contenedor 100% responsivo y fluido (mobile full-width, sm/md centrado y adaptativo) -->
   <main
-    class="w-full max-w-[390px] sm:max-w-[430px] mx-auto bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-200/80 overflow-hidden flex flex-col"
+    class="w-full max-w-full sm:max-w-xl md:max-w-2xl mx-auto bg-white rounded-none sm:rounded-3xl shadow-none sm:shadow-xl sm:shadow-slate-200/70 border-0 sm:border sm:border-slate-200/80 overflow-hidden flex flex-col transition-all duration-200"
     data-purpose="mobile-interactive-widget">
 
     <!-- BEGIN: HeaderSection -->
@@ -167,7 +167,7 @@
         </div>
 
         <!-- 1. Grid de botones para votar (Renderizado dinámico desde app.js) -->
-        <div class="vote-grid grid grid-cols-2 gap-2 mb-3" id="voteGrid" role="group"
+        <div class="vote-grid grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5 mb-3" id="voteGrid" role="group"
           aria-label="Opciones de emociones">
         </div>
 
@@ -291,7 +291,7 @@
   </main>
   <!-- END: InteractiveArticleContainer -->
 
-  <script type="module" src="app.js?v=20261006_v3"></script>
+  <script type="module" src="app.js?v=20261006_responsive"></script>
 </body>
 
 </html>

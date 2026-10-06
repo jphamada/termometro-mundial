@@ -637,8 +637,50 @@ if (shareBtn) {
           shareBtn.innerHTML = originalHtml;
         }, 1800);
       } catch (e) {
-        alert("Enlace: " + window.location.href);
-      }
-    }
-  });
+// ----------------------------------------------------------------------------
+// 11) DETECCIÓN DE MODO EMBEBIDO (IFRAME) Y COMUNICACIÓN RESPONSIVE
+// ----------------------------------------------------------------------------
+
+function initResponsiveEmbed() {
+  const isEmbedded = window.self !== window.top;
+  if (isEmbedded) {
+    document.body.classList.add("is-embedded");
+  }
+
+  function reportHeight() {
+    const mainEl = document.querySelector("main");
+    const height = Math.max(
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight,
+      mainEl ? mainEl.offsetHeight : 0
+    );
+
+    try {
+      window.parent.postMessage(
+        {
+          type: "resize-termometro",
+          height: height,
+          origin: window.location.href,
+        },
+        "*"
+      );
+    } catch (e) {}
+  }
+
+  window.addEventListener("load", reportHeight);
+  window.addEventListener("resize", reportHeight);
+
+  if (window.ResizeObserver) {
+    const resizeObserver = new ResizeObserver(() => {
+      reportHeight();
+    });
+    resizeObserver.observe(document.body);
+  }
+
+  // Reportar altura inicial y tras breve delay para carga de fuentes e imágenes
+  setTimeout(reportHeight, 300);
+  setTimeout(reportHeight, 1200);
 }
+
+initResponsiveEmbed();
+
