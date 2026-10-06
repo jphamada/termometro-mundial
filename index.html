@@ -41,13 +41,14 @@
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=20261006_emociones" />
+  <link rel="stylesheet" href="style.css?v=20261006_v3" />
 
   <style data-purpose="custom-scrollbar">
     /* Ocultar barra de desplazamiento nativa manteniendo funcionalidad swipe */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
+
     .no-scrollbar {
       -ms-overflow-style: none;
       scrollbar-width: none;
@@ -59,6 +60,7 @@
     .hero-gradient {
       background: linear-gradient(180deg, rgba(10, 25, 47, 0.75) 0%, rgba(10, 25, 47, 0.05) 45%, rgba(10, 25, 47, 0.9) 100%);
     }
+
     .timeline-track-glow {
       box-shadow: 0 0 12px rgba(246, 180, 14, 0.35);
     }
@@ -79,40 +81,9 @@
 
     <!-- BEGIN: HeaderSection -->
     <header class="p-4 pb-3 border-b border-slate-100 bg-white" data-purpose="widget-header">
-      <!-- Fila superior: Tag temático, contador de homenajes y botón compartir -->
-      <div class="flex items-center justify-between gap-2 mb-2.5">
-        <span
-          class="inline-flex items-center gap-1.5 bg-argentina-navy text-white text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full uppercase">
-          Especial Interactivo
-        </span>
-
-        <div class="flex items-center gap-2">
-          <!-- Contador en vivo en cabecera -->
-          <span
-            class="px-2.5 py-0.5 text-[11px] font-semibold tracking-wide bg-slate-100 text-slate-700 rounded-full border border-slate-200"
-            id="headerCounterBadge">
-            Pulso <strong class="text-argentina-navy font-bold" id="totalVotesHeader">0</strong>
-          </span>
-
-          <!-- Botón compartir nativo/web share -->
-          <button id="shareBtn" aria-label="Compartir este homenaje"
-            class="p-1.5 text-slate-500 hover:text-argentina-navy hover:bg-slate-100 rounded-full transition-colors active:scale-95"
-            type="button">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-              stroke-width="2" viewBox="0 0 24 24">
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
-              <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
-            </svg>
-          </button>
-        </div>
-      </div>
-
       <!-- Título de sección editorial -->
       <h1 class="text-base sm:text-[17px] font-bold font-display leading-tight text-argentina-navy">
-        Termómetro del 10: Despedida de Lionel Messi
+        La despedida de Lionel Messi de la Selección
       </h1>
     </header>
     <!-- END: HeaderSection -->
@@ -128,55 +99,38 @@
 
           <!-- Capa de gradiente protector para legibilidad de badges -->
           <div class="absolute inset-0 hero-gradient pointer-events-none"></div>
-
-          <!-- Tag superior torneo/evento -->
-          <div class="absolute top-2.5 left-2.5 z-10">
-            <span
-              class="inline-flex items-center px-2 py-1 rounded bg-black/60 backdrop-blur-md text-[10px] font-semibold text-slate-100 uppercase tracking-wider border border-white/15">
-              El Último Baile • Selección Argentina
-            </span>
-          </div>
-
-          <!-- Badge destacado de estadísticas / estadio -->
-          <div class="absolute bottom-2.5 right-2.5 z-10">
-            <span
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md text-[10.5px] font-bold text-white border border-argentina-gold/40 shadow-lg">
-              <span class="w-2 h-2 rounded-full bg-argentina-gold animate-pulse"></span>
-              Estadio Mas Monumental • River Plate
-            </span>
-          </div>
         </div>
 
         <!-- Contenido textual editorial -->
         <div class="p-3.5 pt-3">
-          <!-- Metadatos de fecha y lugar -->
-          <div class="flex items-center flex-wrap gap-2 text-xs mb-2">
-            <span
-              class="inline-flex items-center gap-1.5 font-semibold text-argentina-navy bg-argentina-celesteLight px-2.5 py-1 rounded-md text-[11px]">
-              <svg class="w-3.5 h-3.5 text-argentina-celeste" fill="none" stroke="currentColor" stroke-width="2"
-                viewBox="0 0 24 24">
-                <rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
-                <line x1="16" x2="16" y1="2" y2="6"></line>
-                <line x1="8" x2="8" y1="2" y2="6"></line>
-                <line x1="3" x2="21" y1="10" y2="10"></line>
-              </svg>
-              Martes 6 de Octubre
-            </span>
-            <span class="text-slate-400 text-[11px] font-medium">• Argentina vs. Benin</span>
+            <!-- Metadatos de fecha y lugar -->
+            <div class="flex items-center flex-wrap gap-2 text-xs mb-2">
+              <span
+                class="inline-flex items-center gap-1.5 font-semibold text-argentina-navy bg-argentina-celesteLight px-2.5 py-1 rounded-md text-[11px]">
+                <svg class="w-3.5 h-3.5 text-argentina-celeste" fill="none" stroke="currentColor" stroke-width="2"
+                  viewBox="0 0 24 24">
+                  <rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+                  <line x1="16" x2="16" y1="2" y2="6"></line>
+                  <line x1="8" x2="8" y1="2" y2="6"></line>
+                  <line x1="3" x2="21" y1="10" y2="10"></line>
+                </svg>
+                Martes 6 de Octubre
+              </span>
+              <span class="text-slate-400 text-[11px] font-medium">• Argentina vs. Benin</span>
+            </div>
+
+            <!-- Titular del momento deportivo -->
+            <h2 class="text-[17px] font-extrabold font-display leading-tight text-slate-900 mb-1.5">
+              ¿Qué sentís con la despedida del Capitán?
+            </h2>
+
+            <!-- Bajada narrativa de valor periodístico -->
+            <p class="text-xs text-slate-600 leading-relaxed">
+              El último partido de Lionel Andrés Messi con la celeste y blanca. Elegí tu emoción, dejale
+              un mensaje al 10 y mirá cómo late el corazón de todo un país.
+            </p>
           </div>
-
-          <!-- Titular del momento deportivo -->
-          <h2 class="text-[17px] font-extrabold font-display leading-tight text-slate-900 mb-1.5">
-            ¿Qué sentís con la despedida del Capitán?
-          </h2>
-
-          <!-- Bajada narrativa de valor periodístico -->
-          <p class="text-xs text-slate-600 leading-relaxed">
-            El último partido de Lionel Andrés Messi con la celeste y blanca. Elegí tu emoción en tiempo real, dejale
-            un mensaje al 10 y mirá cómo late el corazón de todo un país.
-          </p>
         </div>
-      </div>
     </article>
     <!-- END: MainCard Hero -->
 
@@ -200,18 +154,21 @@
         </h3>
 
         <!-- Mensaje de confirmación cuando ya votó -->
-        <div class="vote-closed-msg p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-3 text-xs mb-3"
+        <div
+          class="vote-closed-msg p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-3 text-xs mb-3"
           id="voteClosedMsg" hidden>
           <span
             class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">✓</span>
           <div>
             <strong class="font-bold text-slate-900 block">¡Homenaje registrado con éxito!</strong>
-            <p class="text-slate-600 text-[11px]">Gracias por ser parte del pulso colectivo para Lionel en el Monumental.</p>
+            <p class="text-slate-600 text-[11px]">Gracias por ser parte del pulso colectivo para Lionel en el
+              Monumental.</p>
           </div>
         </div>
 
         <!-- 1. Grid de botones para votar (Renderizado dinámico desde app.js) -->
-        <div class="vote-grid grid grid-cols-2 gap-2 mb-3" id="voteGrid" role="group" aria-label="Opciones de emociones">
+        <div class="vote-grid grid grid-cols-2 gap-2 mb-3" id="voteGrid" role="group"
+          aria-label="Opciones de emociones">
         </div>
 
         <!-- Dedicatoria opcional al 10 -->
@@ -312,16 +269,12 @@
       <tbody id="dataTableBody"></tbody>
     </table>
 
-    <!-- Estado de sincronización en tiempo real -->
-    <div class="px-4 py-2 bg-slate-50/80 border-t border-slate-200/80 flex items-center justify-center gap-2 text-[10px] text-slate-500"
-      id="dbStatusBar">
-      <span class="status-indicator" id="statusIndicator"></span>
-      <span class="status-text font-medium" id="statusText">Conectando servicio de datos...</span>
-    </div>
+
 
     <!-- BEGIN: BottomAffordance -->
     <!-- Indicador táctil de final de widget y firma editorial -->
-    <footer class="py-2.5 bg-white flex flex-col items-center justify-center border-t border-slate-100 gap-1 text-center">
+    <footer
+      class="py-2.5 bg-white flex flex-col items-center justify-center border-t border-slate-100 gap-1 text-center">
       <div class="flex items-center gap-1 text-argentina-gold text-[10px] tracking-widest font-black">
         ★ ★ ★
       </div>
@@ -338,7 +291,7 @@
   </main>
   <!-- END: InteractiveArticleContainer -->
 
-  <script type="module" src="app.js?v=20261006_emociones"></script>
+  <script type="module" src="app.js?v=20261006_v3"></script>
 </body>
 
 </html>
