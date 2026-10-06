@@ -248,16 +248,18 @@ function buildVoteGrid() {
 function updateVoteAvailability() {
   const hasVoted = localStorage.getItem("voted_messi_despedida") === "true";
 
-  voteGrid.querySelectorAll(".vote-card").forEach((btn) => {
-    btn.disabled = hasVoted;
-    btn.classList.remove("is-selected");
-  });
+  if (voteGrid) {
+    voteGrid.querySelectorAll(".vote-card").forEach((btn) => {
+      btn.disabled = hasVoted;
+      btn.classList.remove("is-selected");
+    });
+  }
 
   selectedEmotion = null;
 
   if (submitVoteBtn) {
     submitVoteBtn.disabled = true;
-    submitVoteBtn.hidden = hasVoted;
+    submitVoteBtn.style.display = hasVoted ? "none" : "flex";
     submitVoteBtn.innerHTML = `
       <span class="btn-icon">💙</span>
       <span class="btn-text">Registrar Mi Emoción</span>
@@ -265,11 +267,11 @@ function updateVoteAvailability() {
   }
 
   if (tributeInputBox) {
-    tributeInputBox.hidden = hasVoted;
+    tributeInputBox.style.display = hasVoted ? "none" : "block";
   }
 
   if (voteClosedMsg) {
-    voteClosedMsg.hidden = !hasVoted;
+    voteClosedMsg.style.display = hasVoted ? "flex" : "none";
   }
 
   if (voteTitle) {
@@ -540,9 +542,12 @@ async function resolveFirebaseConfig() {
     return STATIC_CONFIG;
   }
 
-  // 2) Revisar si el endpoint /api/config de Vercel tiene credenciales
+  // 2) Revisar si el endpoint /api/config de Vercel tiene credenciales con timeout
   try {
-    const res = await fetch("/api/config");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch("/api/config", { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const remoteConfig = await res.json();
       if (isValidFirebaseConfig(remoteConfig)) {
@@ -560,25 +565,51 @@ async function init() {
   buildVoteGrid();
   updateVoteAvailability();
 
+  // 1) Render inmediato con datos almacenados o demo para evitar que la interfaz quede en blanco
+  window.votosLocales = getInitialDemoVotes();
+  renderAllData(window.votosLocales);
+
   activeFirebaseConfig = await resolveFirebaseConfig();
 
   if (activeFirebaseConfig) {
+    // 2) Carga inmediata por REST para respuesta instantánea (<300ms)
+    try {
+      const restUrl = `https://firestore.googleapis.com/v1/projects/${activeFirebaseConfig.projectId}/databases/(default)/documents/votos_messi`;
+      fetch(restUrl)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && Array.isArray(data.documents) && data.documents.length > 0) {
+            const parsedVotes = data.documents.map((d) => {
+              const f = d.fields || {};
+              return {
+                emotion_id: f.emotion_id?.stringValue || "",
+                value: parseInt(f.value?.integerValue || "1", 10),
+                message: f.message?.stringValue || null,
+                timestamp: f.timestamp?.timestampValue || null,
+              };
+            });
+            renderAllData(parsedVotes);
+          }
+        })
+        .catch(() => {});
+    } catch (e) {}
+
+    // 3) Suscripción en tiempo real nativa de Firebase SDK
     try {
       const fbApp = initializeApp(activeFirebaseConfig);
       db = getFirestore(fbApp);
       votosRef = collection(db, "votos_messi");
 
-      // Suscripción en tiempo real a Firestore
-      const q = query(votosRef, orderBy("timestamp", "asc"), limit(1000));
       unsubscribeVotes = onSnapshot(
         votosRef,
         (snapshot) => {
           const votes = snapshot.docs.map((doc) => doc.data());
-          renderAllData(votes);
+          if (votes.length > 0) {
+            renderAllData(votes);
+          }
         },
         (err) => {
-          console.warn("Permisos o error en Firestore, pasando a modo local:", err);
-          activateDemoMode("Error de lectura en Firestore. Modo local activo.");
+          console.warn("Permisos o error en Firestore en tiempo real:", err);
         }
       );
 
@@ -588,7 +619,6 @@ async function init() {
       }
     } catch (e) {
       console.warn("Fallo al inicializar Firebase SDK:", e);
-      activateDemoMode("Firebase no inicializado. Modo simulación activo.");
     }
   } else {
     activateDemoMode("Modo Demostración Activo · Votos y animaciones operativas localmente");
